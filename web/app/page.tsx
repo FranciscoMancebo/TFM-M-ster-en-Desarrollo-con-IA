@@ -1,106 +1,1164 @@
-const sidebarWidths = [74, 58, 82, 66, 71, 54];
-const articleWidths = [100, 97, 94, 98, 86];
+'use client';
 
-export default function Home() {
+import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import type { User } from '@supabase/supabase-js';
+import {
+  ArrowLeft,
+  BarChart3,
+  Bot,
+  BookOpen,
+  Camera,
+  Check,
+  ChevronRight,
+  CircleUserRound,
+  Compass,
+  Dumbbell,
+  Eye,
+  Flame,
+  LockKeyhole,
+  MoreHorizontal,
+  Pause,
+  Play,
+  RotateCcw,
+  Timer,
+  X,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
+import { LiftProgress } from '@/components/lift-progress';
+import { ExerciseEncyclopedia } from '@/components/exercise-encyclopedia';
+import { LanguageToggle } from '@/components/language-toggle';
+import { RoutineHub } from '@/components/routine-hub';
+import { CoachAssistant } from '@/components/coach-assistant';
+import { I18nProvider, translateKnownText, useI18n } from '@/lib/i18n';
+import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase/client';
+import { determineAthleteLevel, liftDefinitions, latestLiftRecords, todayForInput } from '@/lib/workout/lifts';
+import { workoutRepository } from '@/lib/workout/repository';
+import {
+  freshExercises,
+  type CompletedWorkout,
+  type Exercise,
+  type ExerciseLibraryItem,
+  type LiftRecord,
+  type LiftType,
+  type Language,
+  type NewLiftRecord,
+  type RoutinePlan,
+  type RoutineSummary,
+  type TrainingSet,
+  type UserProfile,
+  type WeightliftingExperience,
+} from '@/lib/workout/types';
+
+type Screen = 'today' | 'session' | 'summary';
+type AppView = 'today' | 'routines' | 'coach' | 'encyclopedia' | 'history' | 'profile';
+
+const navItems = [
+  { id: 'today' as const, label: 'Hoy', labelEn: 'Today', icon: Flame },
+  { id: 'routines' as const, label: 'Rutinas', labelEn: 'Routines', icon: BookOpen },
+  { id: 'coach' as const, label: 'Entrenador', labelEn: 'Coach', icon: Bot },
+  { id: 'encyclopedia' as const, label: 'Ejercicios', labelEn: 'Exercises', icon: Compass },
+  { id: 'history' as const, label: 'Progreso', labelEn: 'Progress', icon: BarChart3 },
+  { id: 'profile' as const, label: 'Perfil', labelEn: 'Profile', icon: CircleUserRound },
+];
+
+const profileGoals = [
+  { id: 'technique', label: 'Técnica', labelEn: 'Technique', description: 'Afinar posiciones, recepción y consistencia.', descriptionEn: 'Refine positions, receiving mechanics and consistency.' },
+  { id: 'strength', label: 'Fuerza', labelEn: 'Strength', description: 'Desarrollar la base para mover más carga.', descriptionEn: 'Build the foundation to lift heavier loads.' },
+  { id: 'mobility', label: 'Movilidad', labelEn: 'Mobility', description: 'Mejorar rangos y control en las posiciones.', descriptionEn: 'Improve range and control in key positions.' },
+  { id: 'competition', label: 'Competición', labelEn: 'Competition', description: 'Preparar intentos, estrategia y puesta a punto.', descriptionEn: 'Prepare attempts, strategy and peaking.' },
+] as const;
+
+const experienceOptions: Array<{ id: WeightliftingExperience; label: string; labelEn: string; description: string; descriptionEn: string }> = [
+  { id: 'never', label: 'Nunca', labelEn: 'Never', description: 'Será mi primer contacto con la halterofilia.', descriptionEn: 'This will be my first contact with weightlifting.' },
+  { id: 'under_6_months', label: 'Menos de 6 meses', labelEn: 'Less than 6 months', description: 'Conozco los movimientos, pero sigo aprendiendo las posiciones.', descriptionEn: 'I know the lifts, but I am still learning the positions.' },
+  { id: 'six_to_twenty_four_months', label: 'Entre 6 meses y 2 años', labelEn: '6 months to 2 years', description: 'Entreno los movimientos clásicos con regularidad.', descriptionEn: 'I train the competition lifts regularly.' },
+  { id: 'over_two_years', label: 'Más de 2 años', labelEn: 'More than 2 years', description: 'Tengo experiencia consolidada y referencias estables.', descriptionEn: 'I have solid experience and stable reference lifts.' },
+];
+
+const levelLabels: Record<UserProfile['level'], string> = {
+  starter: 'Iniciación',
+  beginner: 'Principiante',
+  intermediate: 'Intermedio',
+  advanced: 'Avanzado',
+};
+
+function initialsFor(name: string) {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase() || 'H';
+}
+
+function ProfilePicture({ profile }: { profile: UserProfile }) {
+  return profile.avatarBase64
+    ? <img src={profile.avatarBase64} alt="" />
+    : <>{initialsFor(profile.displayName)}</>;
+}
+
+function GoalSelector({
+  selected,
+  onChange,
+}: {
+  selected: string[];
+  onChange: (goals: string[]) => void;
+}) {
+  const { language } = useI18n();
+  function toggle(goal: string, checked: boolean) {
+    onChange(checked
+      ? [...new Set([...selected, goal])]
+      : selected.filter((item) => item !== goal));
+  }
+
   return (
-    <main className="fixed inset-0 overflow-hidden bg-[#fbfaf8] text-zinc-900">
-      <header
-        aria-hidden="true"
-        className="grid h-[76px] grid-cols-[1fr_auto_1fr] items-center border-b border-stone-200 bg-white/95 px-6 sm:px-14"
-      >
-        <div className="flex items-center gap-3">
-          <span className="h-9 w-9 rounded-full bg-stone-100" />
-          <span className="h-3.5 w-28 rounded-full bg-stone-100" />
-        </div>
-        <span className="hidden h-9 w-[min(30vw,420px)] rounded-xl bg-stone-100 sm:block" />
-        <div className="flex items-center justify-end gap-3">
-          <span className="hidden h-9 w-9 rounded-full bg-stone-100 sm:block" />
-          <span className="h-9 w-24 rounded-xl bg-stone-100" />
-        </div>
-      </header>
+    <div className="goal-grid">
+      {profileGoals.map((goal) => (
+        <label className={selected.includes(goal.id) ? 'goal-option is-selected' : 'goal-option'} key={goal.id}>
+          <Checkbox
+            checked={selected.includes(goal.id)}
+            onCheckedChange={(checked) => toggle(goal.id, checked)}
+            aria-label={language === 'es' ? goal.label : goal.labelEn}
+          />
+          <span><strong>{language === 'es' ? goal.label : goal.labelEn}</strong><small>{language === 'es' ? goal.description : goal.descriptionEn}</small></span>
+        </label>
+      ))}
+    </div>
+  );
+}
 
-      <div
-        aria-hidden="true"
-        className="grid h-[calc(100%-76px)] grid-cols-[180px_minmax(0,1fr)_260px] gap-10 px-6 pb-24 pt-10 opacity-55 max-lg:grid-cols-[150px_minmax(0,1fr)] max-sm:grid-cols-1 sm:px-14"
-      >
-        <aside className="hidden border-r border-stone-200 pr-7 sm:block">
-          <div className="mb-6 h-2.5 w-16 rounded-full bg-stone-200" />
-          <div className="space-y-4">
-            {sidebarWidths.map((width) => (
-              <div key={width} className="flex items-center gap-3">
-                <span className="h-4 w-4 rounded bg-stone-200" />
-                <span
-                  className="h-2.5 rounded-full bg-stone-200"
-                  style={{ width: `${width}%` }}
-                />
-              </div>
-            ))}
-          </div>
-          <div className="mb-6 mt-9 h-2.5 w-24 rounded-full bg-stone-200" />
-          <div className="space-y-4">
-            {sidebarWidths.slice(0, 3).map((width) => (
-              <span
-                key={width}
-                className="block h-2.5 rounded-full bg-stone-200"
-                style={{ width: `${width}%` }}
-              />
-            ))}
-          </div>
-        </aside>
+async function compressAvatar(file: File): Promise<string> {
+  if (!file.type.startsWith('image/')) throw new Error('Selecciona un archivo de imagen.');
+  if (file.size > 5 * 1024 * 1024) throw new Error('La imagen original no puede superar 5 MB.');
 
-        <article className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-          <div className="space-y-3">
-            <div className="h-2.5 w-28 rounded-full bg-stone-200" />
-            <div className="h-7 w-4/5 rounded-lg bg-stone-200" />
-            <div className="h-7 w-3/5 rounded-lg bg-stone-200" />
-          </div>
-          <div className="min-h-[240px] flex-1 rounded-2xl bg-stone-200" />
-          <div className="flex items-center gap-3">
-            <span className="h-9 w-9 rounded-full bg-stone-200" />
-            <span className="h-2.5 w-28 rounded-full bg-stone-200" />
-          </div>
-          <div className="space-y-2">
-            {articleWidths.map((width) => (
-              <span
-                key={width}
-                className="block h-2.5 rounded-full bg-stone-200"
-                style={{ width: `${width}%` }}
-              />
-            ))}
-          </div>
-        </article>
+  const source = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('No se pudo leer la imagen.'));
+    reader.readAsDataURL(file);
+  });
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const element = new Image();
+    element.onload = () => resolve(element);
+    element.onerror = () => reject(new Error('La imagen no es válida.'));
+    element.src = source;
+  });
 
-        <aside className="space-y-5 max-lg:hidden">
-          {[0, 1].map((card) => (
-            <div
-              key={card}
-              className="space-y-4 rounded-2xl border border-stone-200 bg-white/70 p-6"
-            >
-              <span className="block h-10 w-10 rounded-full bg-stone-200" />
-              <span className="block h-3 w-3/5 rounded-full bg-stone-200" />
-              <span className="block h-2.5 w-full rounded-full bg-stone-200" />
-              <span className="block h-2.5 w-4/5 rounded-full bg-stone-200" />
-              <span className="block h-8 w-24 rounded-lg bg-stone-200" />
+  const size = 320;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('No se pudo procesar la imagen.');
+  const cropSize = Math.min(image.naturalWidth, image.naturalHeight);
+  const sourceX = (image.naturalWidth - cropSize) / 2;
+  const sourceY = (image.naturalHeight - cropSize) / 2;
+  context.fillStyle = '#f3f1eb';
+  context.fillRect(0, 0, size, size);
+  context.drawImage(image, sourceX, sourceY, cropSize, cropSize, 0, 0, size, size);
+  return canvas.toDataURL('image/jpeg', 0.82);
+}
+
+function InitialSetup({
+  profile,
+  liftRecords,
+  onComplete,
+}: {
+  profile: UserProfile;
+  liftRecords: LiftRecord[];
+  onComplete: (profile: UserProfile, records: NewLiftRecord[]) => Promise<void>;
+}) {
+  const { language, tr } = useI18n();
+  const [draft, setDraft] = useState(profile);
+  const [step, setStep] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const currentLifts = latestLiftRecords(liftRecords);
+  const [liftValues, setLiftValues] = useState<Record<LiftType, string | null>>({
+    back_squat: currentLifts.get('back_squat')?.weightKg.toString() ?? '',
+    snatch: currentLifts.get('snatch')?.weightKg.toString() ?? '',
+    front_squat: currentLifts.get('front_squat')?.weightKg.toString() ?? '',
+    clean_and_jerk: currentLifts.get('clean_and_jerk')?.weightKg.toString() ?? '',
+  });
+
+  const validStep = step === 0
+    ? draft.trainingDaysPerWeek !== null
+    : step === 1
+      ? draft.heightCm !== null && draft.heightCm >= 100 && draft.heightCm <= 250
+        && draft.weightKg !== null && draft.weightKg >= 30 && draft.weightKg <= 350
+      : step === 2
+        ? draft.weightliftingExperience !== null
+        : step === 3 || draft.goals.length > 0;
+
+  async function chooseAvatar(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setError('');
+    try {
+      const avatarBase64 = await compressAvatar(file);
+      setDraft((current) => ({ ...current, avatarBase64 }));
+    } catch (avatarError) {
+      setError(avatarError instanceof Error ? avatarError.message : 'No se pudo procesar la imagen.');
+    } finally {
+      event.target.value = '';
+    }
+  }
+
+  async function finish() {
+    if (!validStep) return;
+    setSaving(true);
+    setError('');
+    try {
+      const records = liftDefinitions.flatMap((lift): NewLiftRecord[] => {
+        const value = liftValues[lift.id];
+        const weightKg = value === null ? 0 : Number(value);
+        return weightKg > 0 ? [{ lift: lift.id, weightKg, achievedOn: todayForInput(), source: 'onboarding' }] : [];
+      });
+      const levelRecords: LiftRecord[] = [
+        ...liftRecords,
+        ...records.map((record, index) => ({ ...record, id: `setup-${index}` })),
+      ];
+      const level = determineAthleteLevel(draft.weightKg, draft.weightliftingExperience, levelRecords);
+      await onComplete({ ...draft, level, onboardingCompleted: true }, records);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'No se pudo guardar la configuración.');
+      setSaving(false);
+    }
+  }
+
+  return (
+    <main className="setup-page">
+      <section className="setup-shell">
+        <header className="setup-header">
+          <Brand />
+          <span>{tr('Paso', 'Step')} {step + 1} {tr('de', 'of')} 5</span>
+        </header>
+        <Progress value={((step + 1) / 5) * 100} aria-label={`Paso ${step + 1} de 5`} />
+
+        <div className="setup-content">
+          {step === 0 && <>
+            <p className="eyebrow">{tr('Tu ritmo', 'Your schedule')}</p>
+            <h1>{tr('¿Cuántos días entrenas a la semana?', 'How many days a week do you train?')}</h1>
+            <p>{tr('Usaremos tu disponibilidad para proponerte rutinas que puedas mantener.', 'We will use your availability to suggest routines you can sustain.')}</p>
+            <div className="day-selector" role="group" aria-label={tr('Días de entrenamiento por semana', 'Training days per week')}>
+              {Array.from({ length: 7 }, (_, index) => index + 1).map((days) => (
+                <button
+                  type="button"
+                  className={draft.trainingDaysPerWeek === days ? 'is-selected' : ''}
+                  aria-pressed={draft.trainingDaysPerWeek === days}
+                  onClick={() => setDraft({ ...draft, trainingDaysPerWeek: days })}
+                  key={days}
+                >
+                  <strong>{days}</strong><span>{days === 1 ? tr('día', 'day') : tr('días', 'days')}</span>
+                </button>
+              ))}
             </div>
-          ))}
-        </aside>
-      </div>
+          </>}
 
-      <output
-        aria-live="polite"
-        aria-atomic="true"
-        className="absolute left-1/2 top-[clamp(96px,13vh,122px)] w-[min(620px,calc(100%-40px))] -translate-x-1/2 rounded-[18px] border border-stone-200 bg-white/95 px-5 py-5 shadow-[0_18px_50px_rgb(24_24_27/9%)] backdrop-blur-sm"
-      >
-        <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.09em] text-stone-500">
-          Building your site
-        </p>
-        <h1 className="text-xl font-semibold tracking-tight">
-          Your site is taking shape
-        </h1>
-        <p className="mt-1 text-sm text-stone-500">
-          Your first version will appear here automatically when it’s ready.
-        </p>
-      </output>
+          {step === 1 && <>
+            <p className="eyebrow">{tr('Tu referencia', 'Your baseline')}</p>
+            <h1>{tr('Cuéntanos tus medidas actuales', 'Tell us your current measurements')}</h1>
+            <p>{tr('Más adelante combinaremos estos datos con tus marcas para estimar tu nivel de forma objetiva.', 'We will combine these with your lift results to estimate your level objectively.')}</p>
+            <div className="measurement-grid">
+              <label><span>{tr('Altura', 'Height')}</span><div><input required type="number" min={100} max={250} step="0.1" value={draft.heightCm ?? ''} onChange={(event) => setDraft({ ...draft, heightCm: event.target.value ? Number(event.target.value) : null })} /><small>cm</small></div></label>
+              <label><span>{tr('Peso', 'Weight')}</span><div><input required type="number" min={30} max={350} step="0.1" value={draft.weightKg ?? ''} onChange={(event) => setDraft({ ...draft, weightKg: event.target.value ? Number(event.target.value) : null })} /><small>kg</small></div></label>
+            </div>
+          </>}
+
+          {step === 2 && <>
+            <p className="eyebrow">{tr('Tu experiencia', 'Your experience')}</p>
+            <h1>{tr('¿Has practicado halterofilia antes?', 'Have you practised weightlifting before?')}</h1>
+            <p>{tr('La experiencia técnica pesa más que la fuerza general al decidir por dónde empezar.', 'Technical experience matters more than general strength when deciding where to begin.')}</p>
+            <div className="experience-grid">
+              {experienceOptions.map((option) => (
+                <button type="button" className={draft.weightliftingExperience === option.id ? 'is-selected' : ''} aria-pressed={draft.weightliftingExperience === option.id} onClick={() => setDraft({ ...draft, weightliftingExperience: option.id })} key={option.id}>
+                  <strong>{language === 'es' ? option.label : option.labelEn}</strong><span>{language === 'es' ? option.description : option.descriptionEn}</span>
+                </button>
+              ))}
+            </div>
+          </>}
+
+          {step === 3 && <>
+            <p className="eyebrow">{tr('Tus marcas actuales', 'Your current results')}</p>
+            <h1>{tr('¿Qué pesos tienes como referencia?', 'Which reference lifts do you know?')}</h1>
+            <p>{tr('Son opcionales. Los usaremos para convertir los porcentajes de las rutinas en cargas orientativas.', 'They are optional. We will use them to turn routine percentages into suggested loads.')}</p>
+            <div className="reference-lift-grid">
+              {liftDefinitions.map((lift) => (
+                <label className={liftValues[lift.id] === null ? 'is-unknown' : ''} key={lift.id}>
+                  <span>{translateKnownText(language, lift.label)}</span>
+                  <div className="reference-lift-control">
+                    <div><input type="number" min={1} max={600} step="0.5" value={liftValues[lift.id] ?? ''} onChange={(event) => setLiftValues({ ...liftValues, [lift.id]: event.target.value })} placeholder="0" disabled={liftValues[lift.id] === null} /><small>kg</small></div>
+                    <button type="button" aria-pressed={liftValues[lift.id] === null} onClick={() => setLiftValues({ ...liftValues, [lift.id]: liftValues[lift.id] === null ? '' : null })}>{liftValues[lift.id] === null ? tr('Añadir peso', 'Add weight') : tr('Lo desconozco', "I don't know")}</button>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </>}
+
+          {step === 4 && <>
+            <p className="eyebrow">{tr('Personaliza tu plan', 'Personalise your plan')}</p>
+            <h1>{tr('¿Qué quieres conseguir?', 'What do you want to achieve?')}</h1>
+            <p>{tr('Selecciona uno o varios objetivos. Los utilizaremos para priorizar unas rutinas frente a otras.', 'Select one or more goals. We will use them to prioritise the right routines.')}</p>
+            <GoalSelector selected={draft.goals} onChange={(goals) => setDraft({ ...draft, goals })} />
+            <div className="avatar-picker">
+              <div className="profile-avatar"><ProfilePicture profile={draft} /></div>
+              <div><strong>{tr('Imagen de perfil', 'Profile picture')}</strong><span>{tr('Opcional · JPG, PNG o WebP · máximo 5 MB', 'Optional · JPG, PNG or WebP · 5 MB maximum')}</span></div>
+              <label className="file-button"><Camera aria-hidden="true" size={17} />{draft.avatarBase64 ? tr('Cambiar imagen', 'Change picture') : tr('Añadir imagen', 'Add picture')}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void chooseAvatar(event)} /></label>
+            </div>
+          </>}
+          {error && <div className="data-alert" role="alert">{error}</div>}
+        </div>
+
+        <footer className="setup-actions">
+          {step > 0 ? <Button variant="outline" onClick={() => { setError(''); setStep((value) => value - 1); }}>{tr('Atrás', 'Back')}</Button> : <span />}
+          {step < 4
+            ? <Button disabled={!validStep} onClick={() => { setError(''); setStep((value) => value + 1); }}>{tr('Continuar', 'Continue')}</Button>
+            : <Button disabled={!validStep || saving} onClick={() => void finish()}>{saving ? tr('Guardando…', 'Saving…') : tr('Completar configuración', 'Complete setup')}</Button>}
+        </footer>
+      </section>
+      <aside className="setup-aside" aria-hidden="true"><span>01</span><strong>{tr('ENTRENA', 'TRAIN')}<br />{tr('CON INTENCIÓN.', 'WITH INTENT.')}</strong></aside>
     </main>
   );
 }
+
+function Brand() {
+  return (
+    <div className="brand-lockup" aria-label="Haltero">
+      <span className="brand-mark" aria-hidden="true">H</span>
+      <span>HALTERO</span>
+    </div>
+  );
+}
+function MainNavigation({
+  activeView,
+  onNavigate,
+}: {
+  activeView: AppView;
+  onNavigate: (view: AppView) => void;
+}) {
+  const { language, tr } = useI18n();
+  return (
+    <nav className="main-nav" aria-label={tr('Navegación principal', 'Main navigation')}>
+      {navItems.map(({ id, label, labelEn, icon: Icon }) => {
+        const active = id === activeView;
+        return (
+          <button
+            className={active ? 'nav-item is-active' : 'nav-item'}
+            key={label}
+            type="button"
+            aria-current={active ? 'page' : undefined}
+            disabled={!id}
+            onClick={() => id && onNavigate(id)}
+          >
+            <Icon aria-hidden="true" size={20} strokeWidth={1.8} />
+            <span>{language === 'es' ? label : labelEn}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+function AppFrame({
+  children,
+  activeView,
+  onNavigate,
+  profile,
+  sessionMode = false,
+}: {
+  children: React.ReactNode;
+  activeView: AppView;
+  onNavigate: (view: AppView) => void;
+  profile: UserProfile;
+  sessionMode?: boolean;
+}) {
+  const { language } = useI18n();
+  const levelLabel = translateKnownText(language, levelLabels[profile.level]);
+
+  return (
+    <div className={sessionMode ? 'app-shell is-session' : 'app-shell'}>
+      {!sessionMode && (
+        <aside className="desktop-sidebar">
+          <Brand />
+          <MainNavigation activeView={activeView} onNavigate={onNavigate} />
+          <button className="sidebar-foot" type="button" onClick={() => onNavigate('profile')}>
+            <div className="avatar"><ProfilePicture profile={profile} /></div>
+            <div><strong>{profile.displayName}</strong><span>{levelLabel}</span></div>
+          </button>
+        </aside>
+      )}
+      <main className="content-shell">{children}</main>
+      {!sessionMode && (
+        <MainNavigation activeView={activeView} onNavigate={onNavigate} />
+      )}
+    </div>
+  );
+}
+
+function formatDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
+function formatDuration(seconds: number) {
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  return `${minutes} min`;
+}
+
+function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPreferredLanguageLoaded: (language: Language) => void }) {
+  const { language, locale, tr } = useI18n();
+  const [view, setView] = useState<AppView>('today');
+  const [screen, setScreen] = useState<Screen>('today');
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [plan, setPlan] = useState<RoutinePlan | null>(null);
+  const [routines, setRoutines] = useState<RoutineSummary[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [history, setHistory] = useState<CompletedWorkout[]>([]);
+  const [liftRecords, setLiftRecords] = useState<LiftRecord[]>([]);
+  const [exerciseLibrary, setExerciseLibrary] = useState<ExerciseLibraryItem[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [showFinishPrompt, setShowFinishPrompt] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
+  const [dataError, setDataError] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadData() {
+      setLoadingData(true);
+      setDataError('');
+      try {
+        await workoutRepository.ensureOnboarding();
+        const [loadedProfile, loadedPlan, loadedHistory, loadedRoutines, loadedLiftRecords, loadedExercises] = await Promise.all([
+          workoutRepository.loadProfile(user.id),
+          workoutRepository.loadPlan(user.id),
+          workoutRepository.loadHistory(user.id),
+          workoutRepository.loadRoutines(user.id),
+          workoutRepository.loadLiftRecords(user.id),
+          workoutRepository.loadExerciseLibrary(),
+        ]);
+        if (cancelled) return;
+        setProfile(loadedProfile);
+        onPreferredLanguageLoaded(loadedProfile.preferredLanguage);
+        setPlan(loadedPlan);
+        setHistory(loadedHistory);
+        setRoutines(loadedRoutines);
+        setLiftRecords(loadedLiftRecords);
+        setExerciseLibrary(loadedExercises);
+
+        if (loadedPlan) {
+          const active = await workoutRepository.loadActive(loadedPlan);
+          if (cancelled) return;
+          setExercises(active?.exercises ?? loadedPlan.exercises);
+          setElapsed(active?.elapsed ?? 0);
+          setActiveSessionId(active?.sessionId ?? null);
+        }
+      } catch (error) {
+        if (!cancelled) setDataError(error instanceof Error ? error.message : 'No se pudieron cargar tus datos.');
+      } finally {
+        if (!cancelled) setLoadingData(false);
+      }
+    }
+
+    void loadData();
+    return () => { cancelled = true; };
+  }, [onPreferredLanguageLoaded, user.id]);
+
+  useEffect(() => {
+    if (screen !== 'session' || isPaused) return;
+    const interval = window.setInterval(
+      () => setElapsed((value) => value + 1),
+      1000,
+    );
+    return () => window.clearInterval(interval);
+  }, [isPaused, screen]);
+
+  useEffect(() => {
+    setProfile((current) => current && current.preferredLanguage !== language
+      ? { ...current, preferredLanguage: language }
+      : current);
+  }, [language]);
+
+  const totals = useMemo(() => {
+    const sets = exercises.flatMap((exercise) => exercise.sets);
+    const completed = sets.filter((set) => set.status === 'completed');
+    const failed = sets.filter((set) => set.status === 'failed');
+    return {
+      all: sets.length,
+      completed: completed.length,
+      failed: failed.length,
+      pending: sets.length - completed.length - failed.length,
+      volume: completed.reduce(
+        (sum, set) => sum + set.weight * set.reps,
+        0,
+      ),
+    };
+  }, [exercises]);
+
+  const historyTotals = useMemo(
+    () => ({
+      sessions: history.length,
+      volume: history.reduce((sum, item) => sum + item.volumeKg, 0),
+      completedSets: history.reduce(
+        (sum, item) => sum + item.completedSets,
+        0,
+      ),
+    }),
+    [history],
+  );
+
+  const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+  const seconds = (elapsed % 60).toString().padStart(2, '0');
+  const today = new Intl.DateTimeFormat(locale, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date());
+
+  function navigate(nextView: AppView) {
+    setView(nextView);
+    if (screen === 'summary') setScreen('today');
+  }
+
+  function updateSet(
+    exerciseId: string,
+    setId: string,
+    patch: Partial<TrainingSet>,
+  ) {
+    const currentSet = exercises
+      .find((exercise) => exercise.id === exerciseId)
+      ?.sets.find((set) => set.id === setId);
+    if (!currentSet) return;
+    const updatedSet: TrainingSet = { ...currentSet, ...patch };
+
+    setExercises((current) => current.map((exercise) => {
+      if (exercise.id !== exerciseId) return exercise;
+      return {
+        ...exercise,
+        sets: exercise.sets.map((set) => set.id === setId ? updatedSet : set),
+      };
+    }));
+    if (activeSessionId) {
+      void workoutRepository.saveSet(updatedSet).catch((error) => {
+        setDataError(error instanceof Error ? error.message : 'No se pudo guardar la serie.');
+      });
+    }
+  }
+
+  async function startSession() {
+    if (!plan) return;
+    if (activeSessionId) {
+      setScreen('session');
+      return;
+    }
+
+    setDataError('');
+    try {
+      const active = await workoutRepository.startSession(user.id, { ...plan, exercises });
+      setActiveSessionId(active.sessionId);
+      setExercises(active.exercises);
+      setElapsed(0);
+      setScreen('session');
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : 'No se pudo iniciar la sesión.');
+    }
+  }
+
+  async function finishSession() {
+    if (totals.pending > 0 && !showFinishPrompt) {
+      setShowFinishPrompt(true);
+      return;
+    }
+
+    if (!activeSessionId) return;
+    setDataError('');
+    try {
+      await Promise.all(
+        exercises.flatMap((exercise) => exercise.sets.map((set) => workoutRepository.saveSet(set))),
+      );
+      await workoutRepository.finishSession(activeSessionId);
+      setHistory(await workoutRepository.loadHistory(user.id));
+      setActiveSessionId(null);
+      setShowFinishPrompt(false);
+      setScreen('summary');
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : 'No se pudo finalizar la sesión.');
+    }
+  }
+
+  function resetSession(nextView: AppView = 'today') {
+    setExercises(plan ? freshExercises(plan.exercises) : []);
+    setElapsed(0);
+    setIsPaused(false);
+    setShowFinishPrompt(false);
+    setScreen('today');
+    setView(nextView);
+  }
+
+  async function saveProfile() {
+    if (!profile) return;
+    if (!profile.trainingDaysPerWeek || !profile.heightCm || !profile.weightKg || !profile.weightliftingExperience || profile.goals.length === 0) {
+      setDataError('Completa los días de entrenamiento, altura, peso, experiencia y al menos un objetivo.');
+      return;
+    }
+    setProfileSaving(true);
+    setProfileSaved(false);
+    setDataError('');
+    try {
+      const level = determineAthleteLevel(profile.weightKg, profile.weightliftingExperience, liftRecords);
+      const savedProfile = await workoutRepository.saveProfile({ ...profile, level });
+      if (!activeSessionId) {
+        const updatedPlan = await workoutRepository.loadPlan(user.id);
+        setPlan(updatedPlan);
+        if (updatedPlan) setExercises(updatedPlan.exercises);
+      }
+      setProfile(savedProfile);
+      setProfileSaved(true);
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : 'No se pudo guardar el perfil.');
+    } finally {
+      setProfileSaving(false);
+    }
+  }
+
+  async function completeInitialSetup(nextProfile: UserProfile, initialLiftRecords: NewLiftRecord[]) {
+    setDataError('');
+    const savedLiftRecords = await workoutRepository.saveLiftRecords(user.id, initialLiftRecords);
+    const savedProfile = await workoutRepository.saveProfile(nextProfile);
+    await workoutRepository.configureInitialRoutine(user.id, savedProfile.level);
+    const updatedPlan = await workoutRepository.loadPlan(user.id);
+    setLiftRecords(savedLiftRecords);
+    setProfile(savedProfile);
+    setPlan(updatedPlan);
+    if (updatedPlan) setExercises(updatedPlan.exercises);
+  }
+
+  async function refreshRoutineData() {
+    const [updatedRoutines, updatedPlan] = await Promise.all([
+      workoutRepository.loadRoutines(user.id),
+      workoutRepository.loadPlan(user.id),
+    ]);
+    setRoutines(updatedRoutines);
+    setPlan(updatedPlan);
+    if (!activeSessionId) setExercises(updatedPlan?.exercises ?? []);
+  }
+
+  async function chooseProfileAvatar(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file || !profile) return;
+    setDataError('');
+    setProfileSaved(false);
+    try {
+      setProfile({ ...profile, avatarBase64: await compressAvatar(file) });
+    } catch (avatarError) {
+      setDataError(avatarError instanceof Error ? avatarError.message : 'No se pudo procesar la imagen.');
+    } finally {
+      event.target.value = '';
+    }
+  }
+
+  function applyLiftRecords(records: LiftRecord[]) {
+    setLiftRecords(records);
+    if (!profile || activeSessionId) return;
+    void (async () => {
+      try {
+        const level = determineAthleteLevel(profile.weightKg, profile.weightliftingExperience, records);
+        if (level !== profile.level) setProfile(await workoutRepository.saveProfile({ ...profile, level }));
+        const updatedPlan = await workoutRepository.loadPlan(user.id);
+        setPlan(updatedPlan);
+        if (updatedPlan) setExercises(updatedPlan.exercises);
+      } catch (error) {
+        setDataError(error instanceof Error ? error.message : 'No se pudieron recalcular las cargas.');
+      }
+    })();
+  }
+
+  if (loadingData) {
+    return <main className="auth-page"><div className="auth-loading"><Brand /><p>{tr('Cargando tu entrenamiento…', 'Loading your training…')}</p></div></main>;
+  }
+
+  if (!profile) {
+    return <main className="auth-page"><div className="auth-loading"><Brand /><p>{dataError || tr('No se pudo abrir tu perfil.', 'Your profile could not be opened.')}</p><Button onClick={() => getSupabaseClient().auth.signOut()}>{tr('Cerrar sesión', 'Sign out')}</Button></div></main>;
+  }
+
+  if (!profile.onboardingCompleted) {
+    return <InitialSetup profile={profile} liftRecords={liftRecords} onComplete={completeInitialSetup} />;
+  }
+
+  if (screen === 'session') {
+    return (
+      <AppFrame activeView={view} onNavigate={navigate} profile={profile} sessionMode>
+        <header className="session-bar">
+          <Button variant="ghost" size="icon" aria-label={tr('Guardar y salir', 'Save and exit')} onClick={() => setScreen('today')}>
+            <ArrowLeft aria-hidden="true" />
+          </Button>
+          <div className="session-state">
+            <strong>{tr('Sesión activa', 'Active session')}</strong>
+            <span><i className="save-dot" aria-hidden="true" /> {tr('Guardado en Supabase', 'Saved to Supabase')}</span>
+          </div>
+          <Button variant="outline" className="timer-button" onClick={() => setIsPaused((value) => !value)} aria-label={isPaused ? 'Reanudar temporizador' : 'Pausar temporizador'}>
+            {isPaused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
+            <span>{minutes}:{seconds}</span>
+          </Button>
+        </header>
+
+        <div className="session-layout">
+          <aside className="session-overview">
+            <p className="eyebrow">{translateKnownText(language, plan?.title ?? '')} · {tr('Semana', 'Week')} {plan?.weekNumber}</p>
+            <h1>{tr('Día', 'Day')} {plan?.dayIndex} · {translateKnownText(language, plan?.dayName ?? '')}</h1>
+            <p className="muted-copy">{tr('Tus cambios se sincronizan con tu cuenta.', 'Your changes are synced with your account.')}</p>
+            <Progress value={totals.all ? ((totals.completed + totals.failed) / totals.all) * 100 : 0} aria-label={`${totals.completed + totals.failed} de ${totals.all} series registradas`} />
+            <p className="progress-copy"><strong>{totals.completed + totals.failed}/{totals.all}</strong> {tr('series registradas', 'sets recorded')}</p>
+            <div className="session-key">
+              <span><i className="key-dot completed" />{tr('Completada', 'Completed')}</span>
+              <span><i className="key-dot failed" />{tr('Fallida', 'Failed')}</span>
+              <span><i className="key-dot pending" />{tr('Pendiente', 'Pending')}</span>
+            </div>
+          </aside>
+
+          <section className="exercise-stack" aria-label={tr('Ejercicios de la sesión', 'Session exercises')}>
+            {exercises.map((exercise, exerciseIndex) => (
+              <article className="exercise-card" key={exercise.id}>
+                <header className="exercise-heading">
+                  <div className="exercise-number" aria-hidden="true">{(exerciseIndex + 1).toString().padStart(2, '0')}</div>
+                   <div><h2>{translateKnownText(language, exercise.name)}</h2><p>{exercise.prescription}</p></div>
+                  <Button variant="ghost" size="icon" aria-label={`Más opciones para ${exercise.name}`}>
+                    <MoreHorizontal aria-hidden="true" />
+                  </Button>
+                </header>
+                <p className="exercise-context">{exercise.context}</p>
+                <div className="set-table" role="table" aria-label={`Series de ${exercise.name}`}>
+                  <div className="set-row set-header" role="row">
+                    <span role="columnheader">{tr('Serie', 'Set')}</span><span role="columnheader">{tr('Carga', 'Load')}</span><span role="columnheader">{tr('Reps', 'Reps')}</span><span role="columnheader">{tr('Resultado', 'Result')}</span>
+                  </div>
+                  {exercise.sets.map((set, setIndex) => (
+                    <div className={`set-row is-${set.status}`} role="row" key={set.id}>
+                      <strong role="cell">{setIndex + 1}</strong>
+                      <label role="cell">
+                        <span className="sr-only">Carga de la serie {setIndex + 1}</span>
+                        <input inputMode="decimal" value={set.weight} onChange={(event) => updateSet(exercise.id, set.id, { weight: Number(event.target.value) })} aria-label={`Carga de la serie ${setIndex + 1} en kilogramos`} />
+                        <small>kg</small>
+                      </label>
+                      <label role="cell">
+                        <span className="sr-only">Repeticiones de la serie {setIndex + 1}</span>
+                        <input inputMode="numeric" value={set.reps} onChange={(event) => updateSet(exercise.id, set.id, { reps: Number(event.target.value) })} aria-label={`Repeticiones de la serie ${setIndex + 1}`} />
+                      </label>
+                      <div className="set-actions" role="cell">
+                        <button type="button" className="set-result complete" aria-label={`Marcar serie ${setIndex + 1} como completada`} aria-pressed={set.status === 'completed'} onClick={() => updateSet(exercise.id, set.id, { status: set.status === 'completed' ? 'pending' : 'completed' })}>
+                          <Check aria-hidden="true" /><span>{tr('Hecha', 'Done')}</span>
+                        </button>
+                        <button type="button" className="set-result fail" aria-label={`Marcar serie ${setIndex + 1} como fallida`} aria-pressed={set.status === 'failed'} onClick={() => updateSet(exercise.id, set.id, { status: set.status === 'failed' ? 'pending' : 'failed' })}>
+                          <X aria-hidden="true" /><span>{tr('Fallo', 'Fail')}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </section>
+        </div>
+
+        <footer className="session-footer">
+          {showFinishPrompt ? (
+            <div className="finish-prompt" role="alert">
+              <div><strong>{tr('Quedan', 'There are')} {totals.pending} {tr('series pendientes', 'sets pending')}</strong><span>{tr('Se guardarán como omitidas en el resumen.', 'They will be saved as skipped in the summary.')}</span></div>
+              <Button variant="outline" onClick={() => setShowFinishPrompt(false)}>{tr('Seguir entrenando', 'Keep training')}</Button>
+              <Button onClick={finishSession}>{tr('Finalizar igualmente', 'Finish anyway')}</Button>
+            </div>
+          ) : (
+            <><p><strong>{totals.completed}</strong> {tr('completadas', 'completed')} · {totals.failed} {tr('fallidas', 'failed')} · {totals.pending} {tr('pendientes', 'pending')}</p><Button size="lg" onClick={finishSession}>{tr('Finalizar sesión', 'Finish session')}</Button></>
+          )}
+        </footer>
+      </AppFrame>
+    );
+  }
+
+  if (view === 'routines') {
+    return (
+      <AppFrame activeView={view} onNavigate={navigate} profile={profile}>
+        {dataError && <div className="data-alert routine-global-alert" role="alert">{dataError}</div>}
+        <RoutineHub
+          userId={user.id}
+          profile={profile}
+          routines={routines}
+          exercises={exerciseLibrary}
+          liftRecords={liftRecords}
+          onChanged={refreshRoutineData}
+          onGoTraining={() => navigate('today')}
+          onError={setDataError}
+        />
+      </AppFrame>
+    );
+  }
+
+  if (view === 'coach') {
+    return (
+      <AppFrame activeView={view} onNavigate={navigate} profile={profile}>
+        <CoachAssistant
+          key={language}
+          profile={profile}
+          plan={plan}
+          history={history}
+          liftRecords={liftRecords}
+          exerciseLibrary={exerciseLibrary}
+          onOpenExercises={() => navigate('encyclopedia')}
+        />
+      </AppFrame>
+    );
+  }
+
+  if (view === 'profile') {
+    return (
+      <AppFrame activeView={view} onNavigate={navigate} profile={profile}>
+        <div className="page-wrap profile-page">
+          <header className="top-bar">
+            <div className="mobile-brand"><Brand /></div>
+            <div className="date-block"><span>{tr('Cuenta conectada', 'Connected account')}</span><strong>{user.email}</strong></div>
+            <div className="avatar" aria-hidden="true"><ProfilePicture profile={profile} /></div>
+          </header>
+          {dataError && <div className="data-alert" role="alert">{dataError}</div>}
+          <section className="history-heading">
+            <div><p className="eyebrow">{tr('Tu cuenta', 'Your account')}</p><h1>{tr('Perfil de atleta', 'Athlete profile')}</h1></div>
+          </section>
+          <div className="profile-layout">
+            <aside className="profile-summary">
+              <div className="profile-avatar"><ProfilePicture profile={profile} /></div>
+              <h2>{profile.displayName}</h2>
+              <p>{user.email}</p>
+              <span className={profile.profileVisibility === 'public' ? 'profile-visibility-badge is-public' : 'profile-visibility-badge'}>{profile.profileVisibility === 'public' ? <><Eye aria-hidden="true" />{tr('Perfil público', 'Public profile')}</> : <><LockKeyhole aria-hidden="true" />{tr('Perfil privado', 'Private profile')}</>}</span>
+              <label className="file-button profile-photo-button"><Camera aria-hidden="true" size={17} />{tr('Cambiar imagen', 'Change picture')}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void chooseProfileAvatar(event)} /></label>
+              <Button variant="outline" onClick={() => getSupabaseClient().auth.signOut()}>{tr('Cerrar sesión', 'Sign out')}</Button>
+            </aside>
+            <form className="profile-form" onSubmit={(event) => { event.preventDefault(); void saveProfile(); }}>
+              <label>
+                <span>{tr('Nombre visible', 'Display name')}</span>
+                <input required minLength={2} maxLength={60} value={profile.displayName} onChange={(event) => setProfile({ ...profile, displayName: event.target.value })} />
+              </label>
+              <label>
+                <span>{tr('Nivel estimado', 'Estimated level')}</span>
+                <input value={translateKnownText(language, levelLabels[profile.level])} disabled />
+                <small>{tr('Se calcula con tu experiencia, peso corporal y marcas registradas.', 'Calculated from your experience, body weight and recorded lifts.')}</small>
+              </label>
+              <label>
+                <span>{tr('Días de entrenamiento por semana', 'Training days per week')}</span>
+                <input type="number" min={1} max={7} value={profile.trainingDaysPerWeek ?? ''} onChange={(event) => setProfile({ ...profile, trainingDaysPerWeek: event.target.value ? Number(event.target.value) : null })} />
+              </label>
+              <label>
+                <span>{tr('Altura', 'Height')}</span>
+                <div className="unit-input"><input required type="number" min={100} max={250} step="0.1" value={profile.heightCm ?? ''} onChange={(event) => setProfile({ ...profile, heightCm: event.target.value ? Number(event.target.value) : null })} /><small>cm</small></div>
+              </label>
+              <label>
+                <span>{tr('Peso actual', 'Current weight')}</span>
+                <div className="unit-input"><input required type="number" min={30} max={350} step="0.1" value={profile.weightKg ?? ''} onChange={(event) => setProfile({ ...profile, weightKg: event.target.value ? Number(event.target.value) : null })} /><small>kg</small></div>
+              </label>
+              <label className="profile-wide">
+                <span>{tr('Experiencia en halterofilia', 'Weightlifting experience')}</span>
+                <select required value={profile.weightliftingExperience ?? ''} onChange={(event) => setProfile({ ...profile, weightliftingExperience: event.target.value as WeightliftingExperience })}>
+                  <option value="" disabled>{tr('Selecciona tu experiencia', 'Select your experience')}</option>
+                  {experienceOptions.map((option) => <option value={option.id} key={option.id}>{language === 'es' ? option.label : option.labelEn}</option>)}
+                </select>
+              </label>
+              <label className="profile-wide">
+                <span>{tr('Objetivos', 'Goals')} <small>{tr('elige uno o varios', 'choose one or more')}</small></span>
+                <GoalSelector selected={profile.goals} onChange={(goals) => setProfile({ ...profile, goals })} />
+              </label>
+              <label className="profile-wide">
+                <span>{tr('Sobre ti', 'About you')}</span>
+                <textarea maxLength={500} rows={5} value={profile.bio} onChange={(event) => setProfile({ ...profile, bio: event.target.value })} placeholder={tr('Cuéntanos qué estás trabajando ahora.', 'Tell us what you are working on now.')} />
+              </label>
+              <section className="profile-wide privacy-settings" aria-labelledby="privacy-title">
+                <header><div><Eye aria-hidden="true" /><span><strong id="privacy-title">{tr('Privacidad del perfil', 'Profile privacy')}</strong><small>{tr('Decide qué pueden consultar otros atletas.', 'Choose what other athletes can see.')}</small></span></div><label><span className="sr-only">{tr('Visibilidad general', 'General visibility')}</span><select value={profile.profileVisibility} onChange={(event) => setProfile({ ...profile, profileVisibility: event.target.value as UserProfile['profileVisibility'] })}><option value="private">{tr('Perfil privado', 'Private profile')}</option><option value="public">{tr('Perfil público', 'Public profile')}</option></select></label></header>
+                <div className="privacy-options">
+                  <label htmlFor="privacy-training-data" className={profile.showTrainingData ? 'is-enabled' : ''}><Checkbox id="privacy-training-data" checked={profile.showTrainingData} onCheckedChange={(checked) => setProfile({ ...profile, showTrainingData: checked })} /><span><strong>{tr('Datos de entrenamiento', 'Training data')}</strong><small>{tr('Objetivos, frecuencia, altura, peso y experiencia.', 'Goals, frequency, height, weight and experience.')}</small></span></label>
+                  <label htmlFor="privacy-progress" className={profile.showProgress ? 'is-enabled' : ''}><Checkbox id="privacy-progress" checked={profile.showProgress} onCheckedChange={(checked) => setProfile({ ...profile, showProgress: checked })} /><span><strong>{tr('Progresión de marcas', 'Lift progression')}</strong><small>{tr('Histórico fechado de sentadillas, arrancada y dos tiempos.', 'Dated history for squats, snatch and clean and jerk.')}</small></span></label>
+                  <label htmlFor="privacy-routines" className={profile.showPublicRoutines ? 'is-enabled' : ''}><Checkbox id="privacy-routines" checked={profile.showPublicRoutines} onCheckedChange={(checked) => setProfile({ ...profile, showPublicRoutines: checked })} /><span><strong>{tr('Rutinas públicas', 'Public routines')}</strong><small>{tr('Solo aparecerán las rutinas que hayas publicado.', 'Only routines you have published will appear.')}</small></span></label>
+                </div>
+                {profile.profileVisibility === 'private' && <p><LockKeyhole aria-hidden="true" />{tr('Estos permisos quedan guardados, pero nadie verá el perfil hasta que lo marques como público.', 'These permissions are saved, but nobody can view the profile until you make it public.')}</p>}
+              </section>
+              <div className="profile-actions">
+                {profileSaved && <span role="status">{tr('Cambios guardados', 'Changes saved')}</span>}
+                <Button type="submit" disabled={profileSaving}>{profileSaving ? tr('Guardando…', 'Saving…') : tr('Guardar perfil', 'Save profile')}</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </AppFrame>
+    );
+  }
+
+  if (view === 'encyclopedia') {
+    return (
+      <AppFrame activeView={view} onNavigate={navigate} profile={profile}>
+        <ExerciseEncyclopedia exercises={exerciseLibrary} />
+      </AppFrame>
+    );
+  }
+
+  if (view === 'history') {
+    return (
+      <AppFrame activeView={view} onNavigate={navigate} profile={profile}>
+        <div className="page-wrap history-page">
+          <header className="top-bar">
+            <div className="mobile-brand"><Brand /></div>
+            <div className="date-block"><span>{tr('Tu actividad', 'Your activity')}</span><strong>{tr('Últimas 30 sesiones', 'Last 30 sessions')}</strong></div>
+            <button className="avatar" type="button" aria-label={tr('Abrir perfil', 'Open profile')} onClick={() => navigate('profile')}><ProfilePicture profile={profile} /></button>
+          </header>
+          {dataError && <div className="data-alert" role="alert">{dataError}</div>}
+          <section className="history-heading">
+            <div><p className="eyebrow">{tr('Progreso', 'Progress')}</p><h1>{tr('Historial de sesiones', 'Session history')}</h1></div>
+            <Button onClick={() => navigate('today')}>{tr('Ir al entrenamiento', 'Go to training')}</Button>
+          </section>
+          <section className="history-stats" aria-label={tr('Resumen del historial', 'History summary')}>
+            <article><span>{tr('Sesiones', 'Sessions')}</span><strong>{historyTotals.sessions}</strong></article>
+            <article><span>{tr('Series completadas', 'Completed sets')}</span><strong>{historyTotals.completedSets}</strong></article>
+            <article><span>{tr('Volumen acumulado', 'Total volume')}</span><strong>{historyTotals.volume.toLocaleString(locale)} kg</strong></article>
+          </section>
+          <LiftProgress userId={user.id} records={liftRecords} onRecordsChange={applyLiftRecords} onError={setDataError} />
+          <section className="history-list" aria-labelledby="recent-title">
+            <div className="section-heading"><div><p className="eyebrow">{tr('Registro', 'Log')}</p><h2 id="recent-title">{tr('Sesiones recientes', 'Recent sessions')}</h2></div></div>
+            {history.length === 0 ? (
+              <div className="history-empty">
+                <Dumbbell aria-hidden="true" />
+                <h3>{tr('Todavía no hay sesiones terminadas', 'No completed sessions yet')}</h3>
+                <p>{tr('Cuando finalices un entrenamiento aparecerá aquí con su volumen y resultados.', 'Completed training sessions will appear here with their volume and results.')}</p>
+                <Button variant="outline" onClick={() => navigate('today')}>{tr('Ver entrenamiento de hoy', "View today's training")}</Button>
+              </div>
+            ) : (
+              history.map((item) => (
+                <article className="history-item" key={item.id}>
+                  <div className="history-date"><strong>{formatDate(item.completedAt, locale)}</strong><span>{formatDuration(item.durationSeconds)}</span></div>
+                  <div><h3>{translateKnownText(language, item.routineName)}</h3><p>{translateKnownText(language, item.dayName)}</p></div>
+                  <dl>
+                    <div><dt>{tr('Completadas', 'Completed')}</dt><dd>{item.completedSets}</dd></div>
+                    <div><dt>{tr('Fallidas', 'Failed')}</dt><dd>{item.failedSets}</dd></div>
+                    <div><dt>{tr('Volumen', 'Volume')}</dt><dd>{item.volumeKg.toLocaleString(locale)} kg</dd></div>
+                  </dl>
+                </article>
+              ))
+            )}
+          </section>
+        </div>
+      </AppFrame>
+    );
+  }
+
+  if (screen === 'summary') {
+    return (
+      <AppFrame activeView={view} onNavigate={navigate} profile={profile}>
+        <div className="page-wrap summary-page">
+          <header className="mobile-brand"><Brand /></header>
+          <section className="summary-hero">
+            <div className="summary-check"><Check aria-hidden="true" /></div>
+            <p className="eyebrow">{tr('Sesión guardada', 'Session saved')}</p><h1>{tr('Entrenamiento registrado', 'Training recorded')}</h1><p>{translateKnownText(language, plan?.title ?? '')} · {tr('Semana', 'Week')} {plan?.weekNumber}, {tr('día', 'day')} {plan?.dayIndex}</p>
+          </section>
+          <section className="summary-grid" aria-label={tr('Resumen de la sesión', 'Session summary')}>
+            <article><strong>{totals.completed}</strong><span>{tr('Series completadas', 'Completed sets')}</span></article>
+            <article><strong>{totals.failed}</strong><span>{tr('Series fallidas', 'Failed sets')}</span></article>
+            <article><strong>{totals.pending}</strong><span>{tr('Series omitidas', 'Skipped sets')}</span></article>
+            <article><strong>{totals.volume.toLocaleString(locale)} kg</strong><span>{tr('Volumen completado', 'Completed volume')}</span></article>
+          </section>
+          <div className="summary-detail">
+            <div><Timer aria-hidden="true" /><span>{tr('Duración', 'Duration')}</span><strong>{minutes}:{seconds}</strong></div>
+            <div><Dumbbell aria-hidden="true" /><span>{tr('Ejercicios', 'Exercises')}</span><strong>{exercises.length}</strong></div>
+          </div>
+          <p className="formula-note">{tr('El volumen suma carga × repeticiones de cada serie completada. Los intentos fallidos no cuentan.', 'Volume is load × repetitions for every completed set. Failed attempts do not count.')}</p>
+          <div className="summary-actions">
+            <Button variant="outline" size="lg" onClick={() => resetSession('history')}>{tr('Ver historial', 'View history')}</Button>
+            <Button size="lg" onClick={() => resetSession('today')}>{tr('Volver a Hoy', 'Back to Today')}</Button>
+          </div>
+        </div>
+      </AppFrame>
+    );
+  }
+
+  return (
+    <AppFrame activeView={view} onNavigate={navigate} profile={profile}>
+      <div className="page-wrap today-page">
+        <header className="top-bar">
+          <div className="mobile-brand"><Brand /></div>
+          <div className="date-block"><span>{tr('Hoy', 'Today')}</span><strong className="capitalize">{today}</strong></div>
+          <button className="avatar" type="button" aria-label={tr('Abrir perfil', 'Open profile')} onClick={() => navigate('profile')}><ProfilePicture profile={profile} /></button>
+        </header>
+        {dataError && <div className="data-alert" role="alert">{dataError}</div>}
+        <section className="today-heading">
+          <div><p className="eyebrow">{tr('Tu entrenamiento', 'Your training')}</p><h1>{tr('Hoy toca construir la base.', 'Today we build the foundation.')}</h1></div>
+          {plan && <span className="week-badge">{tr('SEM', 'WK')} {plan.weekNumber.toString().padStart(2, '0')} · {tr('DÍA', 'DAY')} {plan.dayIndex.toString().padStart(2, '0')}</span>}
+        </section>
+        {plan ? <section className="workout-card">
+          <div className="workout-main">
+            <div className="workout-labels"><span>{translateKnownText(language, plan.title)}</span><span>{translateKnownText(language, plan.dayName)}</span></div>
+            <h2>{translateKnownText(language, plan.description)}</h2>
+            <p>{totals.all} {tr('series', 'sets')} · {plan.daysPerWeek} {tr('días por semana', 'days per week')}</p>
+            <Button size="lg" className="start-button" onClick={() => void startSession()}>
+              {activeSessionId ? tr('Reanudar sesión', 'Resume session') : tr('Iniciar sesión', 'Start session')}
+              <Play aria-hidden="true" fill="currentColor" />
+            </Button>
+          </div>
+          <div className="workout-index" aria-hidden="true">{plan.dayIndex.toString().padStart(2, '0')}</div>
+        </section> : <div className="history-empty"><Dumbbell aria-hidden="true" /><h3>{tr('No tienes una rutina activa', 'You have no active routine')}</h3><p>{tr('Cuando se asigne una rutina aparecerá aquí.', 'An assigned routine will appear here.')}</p></div>}
+        <section className="day-plan" aria-labelledby="plan-title">
+          <div className="section-heading"><div><p className="eyebrow">{tr('Día', 'Day')} {plan?.dayIndex ?? 1} · {translateKnownText(language, plan?.dayName ?? 'Sin asignar')}</p><h2 id="plan-title">{tr('Plan de hoy', "Today's plan")}</h2></div><span>{totals.all} {tr('series', 'sets')}</span></div>
+          <div className="plan-list">
+            {exercises.map((exercise, index) => (
+              <article key={exercise.id}>
+                <span className="plan-number">{(index + 1).toString().padStart(2, '0')}</span>
+                <div><h3>{translateKnownText(language, exercise.name)}</h3><p>{exercise.context.split(' · ')[0]}</p></div>
+                <strong>{exercise.prescription}</strong><ChevronRight aria-hidden="true" />
+              </article>
+            ))}
+          </div>
+        </section>
+        <aside className="week-note">
+          <div className="note-icon"><RotateCcw aria-hidden="true" /></div>
+          <div><p className="eyebrow">{tr('En el ciclo', 'In this cycle')}</p><h2>{history.length + 1}{language === 'es' ? '.ª sesión registrada' : ' sessions recorded'}</h2><p>{tr('Las cargas se guardan junto a cada intento.', 'Loads are saved with every attempt.')}</p></div>
+          <div className="week-progress" aria-label={`Semana ${plan?.weekNumber ?? 1} de ${plan?.weeks ?? 1}`}>
+            {Array.from({ length: plan?.weeks ?? 1 }, (_, index) => index + 1).map((week) => <span className={week === plan?.weekNumber ? 'is-active' : ''} key={week}>{week.toString().padStart(2, '0')}</span>)}
+          </div>
+        </aside>
+      </div>
+    </AppFrame>
+  );
+}
+
+function AuthScreen() {
+  const { tr } = useI18n();
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState('');
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPending(true);
+    setMessage('');
+    const supabase = getSupabaseClient();
+
+    const result = mode === 'login'
+      ? await supabase.auth.signInWithPassword({ email, password })
+      : await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { display_name: displayName.trim() } },
+        });
+
+    setPending(false);
+    if (result.error) {
+      setMessage(result.error.message);
+      return;
+    }
+    if (mode === 'signup' && !result.data.session) {
+      setMessage(tr('Cuenta creada. Revisa tu correo para confirmarla antes de entrar.', 'Account created. Check your email to confirm it before signing in.'));
+    }
+  }
+
+  return (
+    <main className="auth-page">
+      <section className="auth-panel" aria-labelledby="auth-title">
+        <Brand />
+        <div className="auth-copy">
+          <p className="eyebrow">{tr('Tu entrenamiento, siempre contigo', 'Your training, always with you')}</p>
+          <h1 id="auth-title">{mode === 'login' ? tr('Entrar en Haltero', 'Sign in to Haltero') : tr('Crear una cuenta', 'Create an account')}</h1>
+          <p>{tr('Guarda tus rutinas, sesiones y progreso de forma segura.', 'Keep your routines, sessions and progress safe.')}</p>
+        </div>
+        <form className="auth-form" onSubmit={submit}>
+          {mode === 'signup' && (
+            <label>
+              <span>{tr('Nombre', 'Name')}</span>
+              <input required minLength={2} maxLength={60} autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+            </label>
+          )}
+          <label>
+            <span>{tr('Correo electrónico', 'Email')}</span>
+            <input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+          </label>
+          <label>
+            <span>{tr('Contraseña', 'Password')}</span>
+            <input required type="password" minLength={8} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} />
+          </label>
+          {message && <p className="auth-message" role="status">{message}</p>}
+          <Button size="lg" type="submit" disabled={pending}>
+            {pending ? tr('Conectando…', 'Connecting…') : mode === 'login' ? tr('Entrar', 'Sign in') : tr('Crear cuenta', 'Create account')}
+          </Button>
+        </form>
+        <button className="auth-switch" type="button" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setMessage(''); }}>
+          {mode === 'login' ? tr('¿Primera vez? Crear una cuenta', 'New here? Create an account') : tr('Ya tengo una cuenta', 'I already have an account')}
+        </button>
+      </section>
+      <aside className="auth-visual" aria-hidden="true">
+        <span>01</span>
+        <strong>{tr('ENTRENA', 'TRAIN')}<br />{tr('REGISTRA', 'TRACK')}<br />{tr('PROGRESA', 'PROGRESS')}</strong>
+      </aside>
+    </main>
+  );
+}
+
+export default function Home() {
+  const [language, setLanguage] = useState<Language>('es');
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem('haltero-language');
+    const initial: Language = saved === 'en' || saved === 'es'
+      ? saved
+      : navigator.language.toLowerCase().startsWith('en') ? 'en' : 'es';
+    setLanguage(initial);
+    document.documentElement.lang = initial;
+  }, []);
+
+  const applyLanguage = useCallback((next: Language) => {
+    setLanguage(next);
+    window.localStorage.setItem('haltero-language', next);
+    document.documentElement.lang = next;
+  }, []);
+
+  const changeLanguage = useCallback((next: Language) => {
+    applyLanguage(next);
+    if (user) void workoutRepository.savePreferredLanguage(user.id, next).catch(() => undefined);
+  }, [applyLanguage, user]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setLoading(false);
+      return;
+    }
+
+    const supabase = getSupabaseClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+      setLoading(false);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  return (
+    <I18nProvider language={language}>
+      <LanguageToggle onChange={changeLanguage} />
+      {loading ? (
+        <main className="auth-page"><div className="auth-loading"><Brand /><p>{language === 'es' ? 'Abriendo tu espacio de entrenamiento…' : 'Opening your training space…'}</p></div></main>
+      ) : !isSupabaseConfigured ? (
+        <main className="auth-page"><div className="auth-loading"><Brand /><p>{language === 'es' ? 'Falta configurar la conexión con Supabase.' : 'The Supabase connection is not configured.'}</p></div></main>
+      ) : !user ? (
+        <AuthScreen />
+      ) : (
+        <TrainingApp user={user} onPreferredLanguageLoaded={applyLanguage} />
+      )}
+    </I18nProvider>
+  );
+}
+
