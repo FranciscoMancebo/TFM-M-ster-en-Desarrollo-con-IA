@@ -79,7 +79,7 @@ Preguntas de seguimiento: “¿qué ocurrió después?”, “¿con qué frecuen
 
 Presentar la idea solo después de comprender el comportamiento actual:
 
-> Haltero sería una web móvil para guardar rutinas y sesiones específicas de halterofilia, consultar marcas y copiar rutinas públicas conservando autor y versión.
+> Haltero sería una web móvil para configurar tu punto de partida, guardar rutinas y sesiones específicas de halterofilia, consultar marcas y aprender ejercicios, además de compartir e importar rutinas conservando autor y versión.
 
 20. ¿En qué situación concreta la usarías, si la usarías?
 21. ¿Qué parte no te aporta valor?
@@ -87,10 +87,19 @@ Presentar la idea solo después de comprender el comportamiento actual:
 23. Si solo pudieras elegir una: registro más rápido, mejores métricas o rutinas compartidas, ¿cuál elegirías y por qué?
 24. ¿Qué dato no confiarías a una aplicación así?
 
-### F. Cierre
+### F. Personalización, privacidad y continuidad — 5 minutos
 
-25. ¿Qué pregunta importante no te he hecho?
-26. ¿Puedo contactar contigo para probar un prototipo breve?
+25. Si no conoces una marca, ¿qué esperarías que hiciera la aplicación al proponer una carga?
+26. ¿Qué debería pesar más para indicar tu nivel: experiencia, peso corporal o marcas? ¿Por qué?
+27. Si tu perfil fuera público, ¿compartirías por separado datos físicos, progresión y rutinas?
+28. ¿Te ayudaría poder preguntar al autor antes de usar una rutina?
+29. ¿Las notificaciones y logros te animarían a volver o añadirían ruido?
+30. ¿Qué diferencia esperarías entre un nivel deportivo y un nivel de cuenta?
+
+### G. Cierre
+
+31. ¿Qué pregunta importante no te he hecho?
+32. ¿Puedo contactar contigo para probar un prototipo breve?
 
 ## 5. Preguntas que deben evitarse
 
@@ -138,7 +147,7 @@ Presentar la idea solo después de comprender el comportamiento actual:
 - H2:
 - H3:
 - H4:
-- HC-01 a HC-05:
+- HC-01 a HC-09:
 ```
 
 No incluir citas largas ni información que permita identificar a la persona en una versión pública del repositorio.

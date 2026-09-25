@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CalendarDays, Download, Dumbbell, EyeOff, Heart, MessageCircle } from 'lucide-react';
+import { CalendarDays, Download, Dumbbell, EyeOff, Heart, MessageCircle, Trophy } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
@@ -66,7 +66,8 @@ export function PublicAthleteProfileDialog({
       {loading ? <div className="public-profile-loading"><span /><p>{tr('Cargando perfil…', 'Loading profile…')}</p></div> : profile ? <div className="public-profile-scroll">
         <header className="public-profile-hero">
           <div className="public-profile-avatar">{profile.avatarBase64 ? <img src={profile.avatarBase64} alt="" /> : initials(profile.displayName)}</div>
-          <div><p className="eyebrow">{tr('Perfil de atleta', 'Athlete profile')}</p><h2>{profile.displayName}</h2><span>{language === 'es' ? levelNames[profile.level][0] : levelNames[profile.level][1]} · {tr('Desde', 'Since')} {new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric' }).format(new Date(profile.joinedAt))}</span></div>
+          <div className="public-profile-identity"><p className="eyebrow">{tr('Perfil de atleta', 'Athlete profile')}</p><h2>{profile.displayName}</h2><span>{language === 'es' ? levelNames[profile.level][0] : levelNames[profile.level][1]} · {tr('Desde', 'Since')} {new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric' }).format(new Date(profile.joinedAt))}</span></div>
+          <div className="public-profile-rank" aria-label={tr('Nivel de experiencia de la cuenta', 'Account experience level')}><Trophy aria-hidden="true" /><span>{tr('Nivel', 'Level')} {profile.accountLevel}</span><strong>{profile.totalXp.toLocaleString(locale)} XP</strong><small>{profile.unlockedAchievementCount} {tr('logros', 'achievements')}</small></div>
         </header>
         {profile.bio && <p className="public-profile-bio">{profile.bio}</p>}
 

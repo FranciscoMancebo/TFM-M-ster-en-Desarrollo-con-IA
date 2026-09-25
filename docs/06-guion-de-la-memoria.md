@@ -1,102 +1,165 @@
 # 06. Guion de la memoria
 
-La estructura exacta debe adaptarse a la plantilla de la universidad. Este guion evita que la memoria sea solo una descripción cronológica de código.
+La estructura debe adaptarse a la plantilla académica, pero mantiene una narrativa de producto coherente desde el problema inicial hasta la evaluación.
 
-## 1. Resumen y palabras clave
+## 1. Resumen / Abstract
 
-Problema, solución, método, evaluación y resultado principal en una página. Preparar también versión en inglés si se exige.
+- problema de fragmentación y falta de especialización;
+- propuesta Haltero;
+- método iterativo;
+- arquitectura React/Supabase;
+- alcance del MVP;
+- evaluación realizada y resultado principal;
+- palabras clave en español e inglés.
 
 ## 2. Introducción
 
-- Contexto de la halterofilia y del registro digital.
-- Motivación y problema.
-- Objetivo general y objetivos específicos.
-- Preguntas de investigación.
-- Alcance y estructura del documento.
+- contexto de la halterofilia;
+- registro y planificación digital;
+- motivación;
+- objetivo general y específicos;
+- preguntas de investigación;
+- alcance y limitaciones.
 
-## 3. Estado del arte y análisis previo
+## 3. Estado del arte
 
-- Aplicaciones de entrenamiento y herramientas especializadas.
-- Programación y métricas de halterofilia relevantes para el software.
-- Sistemas de registro de entrenamiento, comunidades deportivas y versionado de contenido.
-- Privacidad, riesgos y limitaciones.
-- Matriz comparativa con criterios definidos antes del análisis.
+- aplicaciones generalistas de fuerza;
+- herramientas específicas de halterofilia;
+- programación por porcentajes y experiencia;
+- comunidades deportivas;
+- gamificación y adherencia;
+- privacidad de datos personales/deportivos;
+- asistentes deterministas frente a modelos generativos.
 
-Evitar comparar solo listas de funciones: incluir flujo, modelo de datos, control del usuario, portabilidad y privacidad.
+## 4. Análisis del problema
 
-## 4. Metodología
+- personas;
+- recorrido actual;
+- fricciones;
+- hipótesis;
+- matriz de referentes;
+- resultados de entrevistas, si se ejecutan;
+- criterios de priorización.
 
-- Descubrimiento de producto y selección de participantes.
-- Priorización y desarrollo iterativo.
-- Arquitectura y ADR.
-- Estrategia de pruebas.
-- Diseño de la evaluación con usuarios y técnica.
-- Amenazas a la validez.
+## 5. Requisitos
 
-## 5. Análisis y requisitos
-
-- Personas y necesidades validadas.
-- Casos de uso y requisitos funcionales/no funcionales.
-- Reglas de negocio.
-- Privacidad y seguridad.
-- Trazabilidad.
+- actores y permisos;
+- requisitos funcionales por capacidad;
+- no funcionales;
+- historias y aceptación;
+- reglas de negocio;
+- matriz de trazabilidad.
 
 ## 6. Diseño de la solución
 
-- Arquitectura C4: contexto, contenedores y componentes relevantes.
-- Modelo de dominio y datos.
-- Diseño de interacción y sistema visual.
-- Diseño de los flujos de sesión, publicación y copia.
-- Decisiones tecnológicas y alternativas descartadas.
+### Arquitectura
+
+- contexto;
+- frontend modular;
+- Supabase Auth/PostgreSQL/RLS;
+- RPC y triggers;
+- GPT Sites;
+- portabilidad.
+
+### Dominio
+
+- perfil y dos tipos de nivel;
+- marcas;
+- ejercicios;
+- rutinas versionadas;
+- sesiones;
+- comunidad;
+- notificaciones y gamificación.
+
+### Experiencia
+
+- configuración guiada;
+- creación manual/asistida;
+- sesión activa;
+- progreso;
+- enciclopedia;
+- comunidad y perfiles;
+- campana y consola de logros;
+- español e inglés.
+
+### Seguridad
+
+- autorización por fila;
+- perfil público como proyección;
+- publicación explícita;
+- idempotencia de recompensas;
+- límites del asistente.
 
 ## 7. Implementación
 
-- Organización del repositorio y entornos.
-- Recorridos verticales más relevantes.
-- Autenticación, RLS y versionado de rutinas.
-- Implementación del registro, progreso y portal comunitario.
-- Problemas técnicos representativos y decisiones tomadas.
+Presentar recorridos verticales, no un listado de archivos:
 
-No convertir este capítulo en un volcado de código; usar fragmentos mínimos y remitir al repositorio.
+1. alta y aprovisionamiento;
+2. nivel y cargas sin datos inventados;
+3. rutinas por días;
+4. importación y procedencia;
+5. privacidad de perfiles;
+6. notificaciones y XP;
+7. entrenador contextual.
+
+Usar fragmentos mínimos, diagramas y referencias al repositorio.
 
 ## 8. Pruebas y evaluación
 
-- Cobertura por nivel y requisitos críticos.
-- Pruebas de autorización.
-- Resultados de accesibilidad y rendimiento.
-- Resultados de tareas, usabilidad, accesibilidad y rendimiento.
-- Estudio con usuarios o evaluación experta.
-- Incidencias y análisis, no solo porcentajes de éxito.
+- estrategia y entorno;
+- tipos y build;
+- pruebas de dominio;
+- RLS;
+- tareas de usuario;
+- accesibilidad;
+- rendimiento;
+- resultados reales;
+- incidencias y correcciones.
+
+No convertir objetivos en resultados. Las pruebas no ejecutadas deben constar como pendientes.
 
 ## 9. Resultados y discusión
 
-- Respuesta explícita a cada pregunta de investigación.
-- Qué funcionó, qué no y por qué.
-- Comparación con objetivos y herramientas previas.
-- Costes, escalabilidad y mantenibilidad.
-- Limitaciones y validez externa.
+Responder cada pregunta de investigación:
 
-## 10. Conclusiones y trabajo futuro
+- fricción del registro;
+- comprensión del nivel;
+- confianza en recomendaciones;
+- utilidad de procedencia y perfiles;
+- efecto percibido de notificaciones/logros.
 
-- Contribuciones técnicas y de producto.
-- Aprendizajes.
-- Líneas futuras priorizadas por evidencia.
+Separar datos, interpretación y limitaciones.
 
-## 11. Bibliografía y anexos
+## 10. Conclusiones
 
-- Fuentes académicas y documentación técnica versionada/fechada.
-- Guiones y consentimientos.
-- Requisitos completos y matriz de trazabilidad.
-- ADR relevantes.
-- Esquemas, scripts y datos anonimizados de evaluación.
-- Manual de despliegue y reproducción.
+- contribución técnica;
+- contribución de producto;
+- aprendizaje;
+- límites;
+- evolución priorizada por evidencia.
 
-## Evidencias que conviene capturar durante el desarrollo
+## 11. Anexos
 
-- Diagramas versionados como texto.
-- Resultados de CI y pruebas relevantes.
-- Evolución de métricas de usabilidad y rendimiento por iteración.
-- Decisiones descartadas y causa.
-- Cambios de alcance.
-- Pruebas de interfaz con datos ficticios.
-- Incidencias de seguridad y cómo se verificó la solución.
+- requisitos completos;
+- migraciones;
+- políticas y pruebas RLS;
+- guiones;
+- consentimientos;
+- matriz de trazabilidad;
+- manual de operación;
+- resultados automatizados;
+- capturas con datos ficticios;
+- ADR.
+
+## Evidencias a capturar
+
+- versión exacta evaluada;
+- esquema y migraciones aplicadas;
+- build final;
+- pruebas allow/deny;
+- casos de carga con y sin referencia;
+- perfil privado frente a público;
+- importación con procedencia;
+- notificaciones y XP idempotente;
+- interacción móvil;
+- mediciones de rendimiento.

@@ -21,6 +21,7 @@ import {
   Play,
   RotateCcw,
   Timer,
+  Trophy,
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,8 @@ import { ExerciseEncyclopedia } from '@/components/exercise-encyclopedia';
 import { LanguageToggle } from '@/components/language-toggle';
 import { RoutineHub } from '@/components/routine-hub';
 import { CoachAssistant } from '@/components/coach-assistant';
+import { AchievementConsole } from '@/components/achievement-console';
+import { NotificationCenter } from '@/components/notification-center';
 import { I18nProvider, translateKnownText, useI18n } from '@/lib/i18n';
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { determineAthleteLevel, liftDefinitions, latestLiftRecords, todayForInput } from '@/lib/workout/lifts';
@@ -52,7 +55,7 @@ import {
 } from '@/lib/workout/types';
 
 type Screen = 'today' | 'session' | 'summary';
-type AppView = 'today' | 'routines' | 'coach' | 'encyclopedia' | 'history' | 'profile';
+type AppView = 'today' | 'routines' | 'coach' | 'encyclopedia' | 'history' | 'achievements' | 'profile';
 
 const navItems = [
   { id: 'today' as const, label: 'Hoy', labelEn: 'Today', icon: Flame },
@@ -60,6 +63,7 @@ const navItems = [
   { id: 'coach' as const, label: 'Entrenador', labelEn: 'Coach', icon: Bot },
   { id: 'encyclopedia' as const, label: 'Ejercicios', labelEn: 'Exercises', icon: Compass },
   { id: 'history' as const, label: 'Progreso', labelEn: 'Progress', icon: BarChart3 },
+  { id: 'achievements' as const, label: 'Logros', labelEn: 'Achievements', icon: Trophy },
   { id: 'profile' as const, label: 'Perfil', labelEn: 'Profile', icon: CircleUserRound },
 ];
 
@@ -388,6 +392,7 @@ function AppFrame({
           </button>
         </aside>
       )}
+      {!sessionMode && <div className="app-notification"><NotificationCenter onOpenRoutines={() => onNavigate('routines')} /></div>}
       <main className="content-shell">{children}</main>
       {!sessionMode && (
         <MainNavigation activeView={activeView} onNavigate={onNavigate} />
@@ -899,6 +904,15 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
     return (
       <AppFrame activeView={view} onNavigate={navigate} profile={profile}>
         <ExerciseEncyclopedia exercises={exerciseLibrary} />
+      </AppFrame>
+    );
+  }
+
+  if (view === 'achievements') {
+    return (
+      <AppFrame activeView={view} onNavigate={navigate} profile={profile}>
+        {dataError && <div className="data-alert routine-global-alert" role="alert">{dataError}</div>}
+        <AchievementConsole onError={setDataError} />
       </AppFrame>
     );
   }

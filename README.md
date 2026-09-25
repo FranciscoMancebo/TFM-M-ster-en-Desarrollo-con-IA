@@ -1,45 +1,107 @@
-# Haltero — TFM de Desarrollo con IA
+# Haltero — plataforma web de entrenamiento de halterofilia
 
-Haltero es el nombre provisional de una aplicación web móvil-first para registrar entrenamientos de halterofilia, seguir marcas personales, diseñar ciclos y descubrir rutinas compartidas por la comunidad.
+Haltero es una aplicación web móvil-first para planificar y ejecutar entrenamientos de halterofilia, registrar marcas, visualizar el progreso y compartir rutinas con una comunidad. El producto adapta la experiencia inicial, el nivel deportivo, los ejercicios y las cargas orientativas a los datos del atleta, sin sustituir el criterio de un entrenador.
 
-Este repositorio comienza por la documentación. El desarrollo no debe iniciarse hasta validar el alcance del MVP y cerrar las decisiones abiertas de la fase 0.
+Este repositorio contiene la aplicación, las migraciones de Supabase y la documentación del TFM.
 
-## Estado
+## Estado del proyecto
 
-**Fase actual:** ideación y definición del producto.
+**Fase actual:** MVP funcional desplegado y en consolidación técnica/documental.
 
-## Mapa de documentación
+Capacidades disponibles:
 
-| Documento | Pregunta que responde |
+- registro, inicio y cierre de sesión con Supabase Auth;
+- configuración inicial guiada de disponibilidad, medidas, experiencia, objetivos, avatar y marcas;
+- cálculo de cuatro niveles deportivos: iniciación, principiante, intermedio y avanzado;
+- rutinas privadas o públicas, editables, eliminables y organizadas en días independientes;
+- creación manual o asistida mediante reglas por nivel, objetivo y marcas disponibles;
+- activación de rutinas propias e importación/activación de rutinas públicas con procedencia;
+- registro de sesiones, series completadas o fallidas, pausa, reanudación y resumen;
+- historial y gráficos fechados para sentadilla, arrancada, sentadilla frontal y dos tiempos;
+- enciclopedia de fuerza, movilidad, arrancada y dos tiempos con variantes y hueco para vídeo;
+- comunidad con filtros, likes, preguntas al autor y perfiles públicos configurables;
+- notificaciones por likes y preguntas;
+- experiencia, niveles de cuenta y logros desbloqueables;
+- entrenador conversacional gratuito basado en reglas y en el contexto almacenado;
+- interfaz bilingüe en español e inglés.
+
+## Estructura
+
+```text
+docs/                 visión, requisitos, arquitectura, UX, evaluación y ADR
+supabase/migrations/  esquema remoto, funciones, políticas RLS y datos de demostración
+supabase/tests/       pruebas de seguridad por fila
+web/                  aplicación React/Next.js compatible con GPT Sites
+visualizations/       artefactos visuales auxiliares
+iniciar-web.cmd       lanzador local para Windows
+```
+
+## Puesta en marcha
+
+### Requisitos
+
+- Node.js 22.13 o superior.
+- Un proyecto remoto de Supabase.
+- URL pública y clave publicable de Supabase.
+
+### Aplicación web
+
+Desde PowerShell, situado en la raíz del repositorio:
+
+```powershell
+cd .\web
+npm.cmd install
+Copy-Item .env.example .env.local
+npm.cmd run dev
+```
+
+Configurar en `web/.env.local`:
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=https://TU_PROYECTO.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=TU_CLAVE_PUBLICABLE
+```
+
+También se puede iniciar con doble clic en `iniciar-web.cmd`.
+
+### Base de datos remota
+
+Desde la raíz del repositorio:
+
+```powershell
+npx.cmd supabase login
+npx.cmd supabase link --project-ref TU_PROJECT_REF
+npx.cmd supabase db push
+```
+
+Las migraciones de `supabase/migrations` son la fuente de verdad. El flujo actual utiliza exclusivamente Supabase Cloud; la pila local queda como alternativa futura de desarrollo.
+
+## Validación
+
+Desde `web/`:
+
+```powershell
+npx.cmd tsc --noEmit
+npm.cmd run build
+```
+
+La seguridad de datos se apoya en Row Level Security y en funciones RPC con comprobación de `auth.uid()`. Nunca debe utilizarse una clave de servicio en el navegador.
+
+## Documentación
+
+| Documento | Contenido |
 | --- | --- |
-| [Visión y alcance](docs/00-vision-y-alcance.md) | ¿Qué problema resuelve, para quién y qué entra en el MVP? |
-| [Requisitos](docs/01-requisitos.md) | ¿Qué debe hacer el sistema y cómo se acepta? |
-| [Arquitectura y tecnologías](docs/02-arquitectura-y-tecnologias.md) | ¿Con qué se construye y por qué? |
-| [Modelo de dominio y datos](docs/03-modelo-de-dominio.md) | ¿Qué entidades existen y cómo se relacionan? |
-| [Plan de evaluación](docs/04-plan-de-evaluacion.md) | ¿Cómo se demuestra que el producto funciona y resulta usable? |
-| [Plan de desarrollo](docs/05-plan-de-desarrollo.md) | ¿En qué orden se construye y qué entrega cada fase? |
-| [Guion de la memoria](docs/06-guion-de-la-memoria.md) | ¿Cómo se transforma el trabajo en el documento académico? |
-| [Registro de riesgos](docs/07-riesgos.md) | ¿Qué puede fallar y cómo se mitiga? |
-| [Investigación inicial](docs/research/README.md) | ¿Qué referentes se han revisado y cómo se validarán las hipótesis? |
-| [Diseño de experiencia](docs/ux/README.md) | ¿Cómo se recorre el producto y qué debe mostrar cada pantalla? |
-| [Decisiones de arquitectura](docs/adr/README.md) | ¿Qué decisiones importantes se han tomado y con qué alternativas? |
+| [Visión y alcance](docs/00-vision-y-alcance.md) | Problema, usuarios, propuesta, alcance y principios. |
+| [Requisitos](docs/01-requisitos.md) | Requisitos funcionales, no funcionales y reglas de negocio. |
+| [Arquitectura](docs/02-arquitectura-y-tecnologias.md) | Componentes, stack, seguridad y despliegue. |
+| [Modelo de dominio](docs/03-modelo-de-dominio.md) | Entidades, relaciones, privacidad y gamificación. |
+| [Plan de evaluación](docs/04-plan-de-evaluacion.md) | Protocolo funcional, técnico y con usuarios. |
+| [Plan de desarrollo](docs/05-plan-de-desarrollo.md) | Fases, entregables y estado. |
+| [Guion de la memoria](docs/06-guion-de-la-memoria.md) | Estructura propuesta para el TFM. |
+| [Riesgos](docs/07-riesgos.md) | Registro de riesgos y mitigaciones. |
+| [Guía técnica y operativa](docs/08-guia-tecnica-y-operacion.md) | Entornos, configuración, datos y despliegue. |
+| [Matriz de trazabilidad](docs/09-matriz-de-trazabilidad.md) | Relación entre requisitos, código, datos y validación. |
 
-## Propuesta resumida
+## Límites
 
-- **Usuario principal:** deportista aficionado o intermedio que entrena halterofilia sin una herramienta específica.
-- **Flujo principal:** elegir o crear rutina → ejecutar sesión → registrar intentos → consultar progreso → adaptar el siguiente bloque.
-- **Diferenciación:** terminología y métricas propias de halterofilia, registro rápido durante la sesión y ciclos versionados que se pueden copiar sin perder autoría.
-- **MVP:** autenticación, catálogo de ejercicios, editor de rutinas, registro de sesiones, marcas, progreso, portal público y clonación de rutinas.
-- **Fuera del MVP:** análisis técnico de vídeo, mensajería, pagos, wearables y funciones clínicas.
-
-## Convenciones iniciales
-
-- Idioma de producto inicial: español.
-- Unidades internas: kilogramos; conversión de presentación pospuesta.
-- Moneda, pagos y marketplace: fuera de alcance.
-- La aplicación registra y organiza entrenamiento; no ofrece diagnóstico ni sustituye la valoración de un entrenador o profesional sanitario.
-- Cada decisión relevante se registra como ADR antes o junto a su implementación.
-
-## Próximo hito
-
-Validar la fase 0 con entre 3 y 5 usuarios potenciales y, si es posible, un entrenador. Después se puede iniciar el esqueleto técnico y construir el primer recorrido vertical: iniciar sesión, crear una rutina mínima, registrar una sesión y visualizarla en el historial.
+Haltero no diagnostica lesiones, no prescribe tratamiento médico y no garantiza resultados deportivos. Las cargas sugeridas son orientativas, editables y solo se calculan cuando existe una marca compatible; si falta, la aplicación propone empezar con barra vacía o una carga técnica cómoda.

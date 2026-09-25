@@ -1,142 +1,104 @@
-# 03. Backlog inicial
+# 03. Backlog de producto
 
-## 1. Principios de priorización
+## 1. Principios
 
-- Primero se valida el recorrido que ocurre en el gimnasio.
-- Seguridad y privacidad no se aplazan a una fase de endurecimiento final.
-- El portal comunitario se construye sobre rutinas ya utilizables.
-- Cada entrega vertical debe poder demostrarse con datos realistas.
-- “Must” significa necesario para responder a los objetivos del TFM, no simplemente deseable.
+- Personalizar antes de recomendar.
+- No inventar marcas ni cargas.
+- Construir rutinas y días antes de añadir interacción social.
+- Tratar privacidad y RLS como parte de cada historia.
+- Mantener separadas capacidad deportiva y actividad lúdica.
+- Acompañar cada incremento con documentación y evidencia.
 
 ## 2. Épicas
 
-| ID | Épica | Resultado para el usuario | Prioridad | Dependencias |
-| --- | --- | --- | --- | --- |
-| E-01 | Identidad y privacidad | Acceder y controlar datos propios | Must | Base técnica |
-| E-02 | Catálogo de ejercicios | Usar movimientos y variantes consistentes | Must | E-01 |
-| E-03 | Rutinas y ciclos | Preparar semanas y días reutilizables | Must | E-02 |
-| E-04 | Sesión activa | Registrar el entrenamiento sin perder el ritmo | Must | E-03 |
-| E-05 | Marcas y progreso | Comprender evolución y mejores resultados | Must | E-04 |
-| E-06 | Portal de rutinas | Descubrir contenido adecuado | Must | E-03, E-01 |
-| E-07 | Copia y procedencia | Adaptar sin alterar ni ocultar el original | Must | E-06 |
-| E-08 | Portabilidad | Exportar y borrar datos | Must | E-01–E-05 |
-| E-09 | PWA/offline acotado | Tolerar conectividad deficiente | Should | E-04 |
-| E-10 | Favoritos | Guardar rutinas para revisarlas después | Should | E-06 |
+| ID | Épica | Resultado | Prioridad |
+| --- | --- | --- | --- |
+| E-01 | Identidad y perfil | Cuenta y datos propios protegidos | Must |
+| E-02 | Configuración adaptativa | Nivel y objetivos coherentes | Must |
+| E-03 | Catálogo | Conocimiento y ejercicios reutilizables | Must |
+| E-04 | Rutinas por días | Planificación manual o asistida | Must |
+| E-05 | Sesión activa | Registro móvil persistente | Must |
+| E-06 | Marcas y progreso | Evolución fechada | Must |
+| E-07 | Comunidad | Descubrir, interactuar e importar | Must |
+| E-08 | Perfiles y privacidad | Identidad pública controlada | Must |
+| E-09 | Notificaciones | Conocer actividad relevante | Must |
+| E-10 | Logros y XP | Visualizar continuidad de uso | Must |
+| E-11 | Entrenador contextual | Consultar datos propios mediante reglas | Should |
+| E-12 | Multilenguaje | Usar español o inglés | Must |
+| E-13 | Portabilidad | Reproducir datos y despliegue | Must |
 
-## 3. Historias priorizadas
+## 3. Historias
 
-| ID | Historia resumida | Prioridad | Tamaño | Requisito |
-| --- | --- | --- | --- | --- |
-| US-001 | Registrarme e iniciar/cerrar sesión | Must | M | RF-001 |
-| US-002 | Editar perfil, nivel, objetivos y disponibilidad | Must | S | RF-002 |
-| US-003 | Mantener perfil y datos privados por defecto | Must | M | RF-003 |
-| US-010 | Consultar catálogo por movimiento y variante | Must | M | RF-010–011 |
-| US-011 | Registrar una marca de referencia | Must | S | RF-012 |
-| US-020 | Crear metadatos de una rutina | Must | S | RF-020 |
-| US-021 | Añadir semanas, días y ejercicios ordenados | Must | L | RF-021–022 |
-| US-022 | Duplicar una rutina propia | Must | S | RF-023 |
-| US-023 | Activar una versión de rutina | Must | M | RF-024 |
-| US-030 | Iniciar una sesión programada o vacía | Must | M | RF-030 |
-| US-031 | Completar una serie con carga, repeticiones y resultado | Must | M | RF-031 |
-| US-032 | Cambiar ejercicios/series durante la sesión | Must | M | RF-032 |
-| US-033 | Reanudar una sesión tras cerrar o recargar | Must | M | RF-033 |
-| US-034 | Finalizar y consultar resumen | Must | M | RF-034 |
-| US-035 | Consultar último y mejor resultado al registrar | Should | S | RNF-001 |
-| US-040 | Publicar y retirar una versión | Must | M | RF-040 |
-| US-041 | Buscar y filtrar rutinas públicas | Must | M | RF-041 |
-| US-042 | Copiar una versión pública como rutina privada | Must | M | RF-042–044 |
-| US-050 | Ver evolución por movimiento y periodo | Must | M | HU-04 |
-| US-051 | Confirmar una posible marca detectada | Must | S | RF-013 |
-| US-060 | Exportar mis datos | Must | M | RF-004 |
-| US-061 | Eliminar mi cuenta y datos | Must | M | RF-004 |
-| US-070 | Instalar la web y recuperar sesión con mala conexión | Should | L | E-09 |
-| US-071 | Marcar una rutina como favorita | Should | S | E-10 |
+| ID | Historia | Prioridad | Requisitos |
+| --- | --- | --- | --- |
+| US-001 | Crear cuenta e iniciar/cerrar sesión | Must | RF-001 |
+| US-002 | Completar configuración guiada | Must | RF-002–006 |
+| US-003 | Obtener nivel sin sobreestimar experiencia | Must | RF-007 |
+| US-004 | Editar perfil, idioma y privacidad | Must | RF-008–010 |
+| US-010 | Explorar ejercicios por sección | Must | RF-020–023 |
+| US-011 | Añadir una marca desde su gráfico | Must | RF-024–025 |
+| US-012 | Calcular carga solo con referencia compatible | Must | RF-026, RF-036 |
+| US-020 | Crear rutina manual | Must | RF-030, RF-032–034 |
+| US-021 | Crear rutina mediante reglas | Must | RF-031, RF-035–036 |
+| US-022 | Configurar cada día por separado | Must | RF-033 |
+| US-023 | Editar, eliminar, publicar o privatizar | Must | RF-030, RF-037 |
+| US-024 | Activar una única rutina | Must | RF-038 |
+| US-030 | Ejecutar, pausar y reanudar sesión | Must | RF-040–044 |
+| US-031 | Finalizar y consultar resumen/historial | Must | RF-045–047 |
+| US-040 | Filtrar y revisar rutinas públicas | Must | RF-050–052 |
+| US-041 | Dar like y preguntar al autor | Must | RF-053–054 |
+| US-042 | Importar y activar conservando procedencia | Must | RF-055–057 |
+| US-043 | Abrir perfil de autor | Must | RF-058 |
+| US-044 | Elegir secciones públicas | Must | RF-059 |
+| US-050 | Recibir y leer notificaciones | Must | RF-060–063 |
+| US-051 | Obtener XP y desbloquear logros | Must | RF-064–068 |
+| US-060 | Preguntar al entrenador contextual | Should | RF-070–073 |
+| US-061 | Mantener idioma entre sesiones | Must | RF-009 |
 
-Tamaño `S/M/L` expresa incertidumbre y esfuerzo relativo; debe recalibrarse tras el primer recorrido vertical.
-
-## 4. Primer recorrido vertical
-
-El primer incremento no intenta completar una épica entera. Debe probar arquitectura, permisos y experiencia básica de extremo a extremo:
+## 4. Recorridos verticales
 
 ```mermaid
-flowchart LR
-    A[Usuario de prueba] --> B[Inicia sesión]
-    B --> C[Crea rutina de un día]
-    C --> D[La activa]
-    D --> E[Registra una serie]
-    E --> F[Finaliza sesión]
-    F --> G[La consulta en historial]
+flowchart TD
+    A[Identidad y configuración] --> B[Nivel y rutina inicial]
+    B --> C[Rutina editable por días]
+    C --> D[Sesión e historial]
+    D --> E[Marcas y gráficos]
+    E --> F[Comunidad e importación]
+    F --> G[Perfiles y privacidad]
+    G --> H[Notificaciones y logros]
+    H --> I[Evaluación y entrega]
 ```
 
-### Historias incluidas
+## 5. Criterios de preparado
 
-- US-001 en su variante mínima.
-- US-010 con catálogo semilla reducido.
-- US-020 y parte mínima de US-021.
-- US-023.
-- US-030, US-031 y US-034.
-- Pruebas de privacidad de US-003 desde el inicio.
+Una historia entra en desarrollo cuando identifica:
 
-### Criterios de salida
+- actor y valor;
+- aceptación observable;
+- datos y permisos;
+- traducción necesaria;
+- estados de interfaz;
+- dependencia de migración;
+- prueba proporcional al riesgo.
 
-- El dato persiste tras recargar.
-- Dos usuarios de prueba no pueden leer ni modificar datos entre sí.
-- La serie conserva vínculo con ejercicio, sesión y rutina planificada.
-- El flujo funciona a 360 px y con teclado.
-- Existe migración reproducible y prueba automatizada crítica.
+## 6. Criterios de cierre
 
-## 5. Siguientes incrementos
+- La capacidad funciona con datos realistas.
+- No expone filas ajenas.
+- Los errores conservan el trabajo del usuario cuando procede.
+- Tipos y build pasan.
+- Requisitos y trazabilidad están actualizados.
+- No se presenta como evaluada sin evidencia.
 
-### Incremento 2 — Rutina realista
+## 7. Backlog posterior al MVP
 
-Editor de varias semanas y días, porcentajes/RPE, orden, duplicación y activación estable.
-
-### Incremento 3 — Entrenar sin fricción
-
-Reanudación, cambios durante sesión, último/mejor, fallos, omisiones, descanso y resumen.
-
-### Incremento 4 — Progreso
-
-Marcas confirmadas, histórico y gráficos con cálculos verificables.
-
-### Incremento 5 — Compartir y reutilizar
-
-Publicación, búsqueda/filtros, detalle, copia y procedencia.
-
-### Incremento 6 — Privacidad y entrega
-
-Exportación/borrado, accesibilidad, rendimiento, evaluación y corrección de incidencias.
-
-## 6. Definición de preparado
-
-Una historia puede entrar en desarrollo cuando:
-
-- expresa valor para un actor;
-- tiene criterios de aceptación observables;
-- identifica datos y permisos afectados;
-- sus dependencias están resueltas o incluidas;
-- existe diseño suficiente para no improvisar el flujo principal;
-- cabe en una iteración o se ha dividido.
-
-## 7. Decisiones pendientes antes de desarrollar
-
-| ID | Pregunta | Cómo resolverla | Impacto |
-| --- | --- | --- | --- |
-| DP-01 | ¿Cómo se representan los complejos? | Entrevistas + prototipo de editor | Modelo de datos y UI |
-| DP-02 | ¿RPE por serie o ejercicio? | Observar métodos actuales | Datos y velocidad de registro |
-| DP-03 | ¿Qué significa una marca? | Validación con entrenador | Cálculos y gráficos |
-| DP-04 | ¿Cómo se redondean porcentajes? | Equipamiento y preferencias | Prescripción y ejecución |
-| DP-05 | ¿La rutina se publica completa o por versión? | Prototipo de procedencia | Comunidad y permisos |
-| DP-06 | ¿Se requiere uso sin conexión en el gimnasio? | Entrevistas y prueba contextual | Arquitectura PWA |
-| DP-07 | ¿“Haltero” es nombre final? | Búsqueda legal, dominios y test de recuerdo | Marca y publicación |
-
-## 8. Criterio de cierre de fase 0
-
-- [ ] Entrevistas realizadas y anonimizadas.
-- [ ] Hipótesis H1–H4 y HC-01–HC-05 revisadas.
-- [ ] Complejos, intentos y marcas definidos con ejemplos.
-- [ ] Wireflow móvil del registro probado con al menos tres personas.
-- [ ] Requisitos Must ajustados y trazables.
-- [ ] Decisiones DP-01–DP-07 cerradas o aplazadas con motivo.
-- [ ] Riesgos actualizados.
-- [ ] Arquitectura y stack aprobados para iniciar el recorrido vertical.
+- exportación y borrado autoservicio;
+- recuperación de contraseña;
+- PWA/offline;
+- detección de marcas desde series;
+- paginación;
+- vídeos;
+- Storage para avatares;
+- notificaciones push;
+- IA opcional con control de coste;
+- panel de entrenador.

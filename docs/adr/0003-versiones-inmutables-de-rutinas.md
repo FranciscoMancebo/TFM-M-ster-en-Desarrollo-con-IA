@@ -1,6 +1,6 @@
 # ADR-0003: Versiones publicadas inmutables y copias con procedencia
 
-- Estado: Propuesto
+- Estado: Aceptado
 - Fecha: 2026-09-09
 
 ## Contexto

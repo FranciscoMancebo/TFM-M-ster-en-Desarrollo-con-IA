@@ -1,122 +1,159 @@
 # 00. Visión y alcance
 
-## 1. Idea de producto
+## 1. Visión de producto
 
-**Nombre provisional:** Haltero.
+Haltero es una plataforma web móvil-first especializada en halterofilia. Reúne en un único entorno la configuración del atleta, la planificación por rutinas y días, la ejecución de sesiones, el seguimiento de marcas, el aprendizaje de ejercicios y la interacción alrededor de rutinas públicas.
 
-**Visión:** ofrecer a quien practica halterofilia un único lugar para planificar, ejecutar, analizar y compartir su entrenamiento con una experiencia específica, rápida y comprensible.
+La propuesta se apoya en cuatro pilares concebidos como una experiencia única:
 
-**Propuesta de valor:** frente a una aplicación de fuerza genérica, Haltero modela intentos válidos y fallidos, variantes de movimientos olímpicos, porcentajes respecto a marcas, bloques de entrenamiento y volumen específico. Frente a una hoja de cálculo, facilita el uso durante la sesión, el histórico y la reutilización de rutinas públicas.
+1. **Personalización inicial:** el sistema conoce disponibilidad, medidas, experiencia, objetivos y marcas antes de sugerir una planificación.
+2. **Entrenamiento utilizable:** las rutinas se ejecutan por días y las series se registran con poca fricción.
+3. **Progreso comprensible:** las marcas se conservan con fecha y se representan en gráficos.
+4. **Comunidad con control:** cada atleta decide qué publica, puede reutilizar rutinas ajenas y mantiene la procedencia del contenido.
 
 ## 2. Problema
 
-Quienes entrenan halterofilia suelen combinar hojas de cálculo, notas, aplicaciones generalistas y contenido disperso. Esto provoca:
+Quien practica halterofilia suele repartir su información entre hojas de cálculo, notas, aplicaciones genéricas y mensajes con su entrenador. Esta fragmentación dificulta:
 
-- fricción al registrar intentos, variantes, RPE/RIR y resultados;
-- poca visibilidad de la evolución por movimiento y por ciclo;
-- dificultad para reutilizar o adaptar programas compartidos;
-- recomendaciones genéricas que no respetan nivel, frecuencia, material o marcas;
-- poca trazabilidad cuando una rutina compartida se copia y modifica.
-
-Estas afirmaciones son hipótesis de producto. Deben validarse con entrevistas antes de presentarlas como conclusiones del TFM.
+- relacionar marcas de referencia con las cargas programadas;
+- adaptar el tipo de trabajo al nivel técnico real;
+- registrar intentos sin interrumpir el entrenamiento;
+- visualizar la evolución de los movimientos principales;
+- descubrir rutinas adecuadas por nivel y enfoque;
+- reutilizar contenido sin perder autoría;
+- controlar por separado qué datos personales y deportivos son públicos.
 
 ## 3. Usuarios
 
-### Persona primaria: deportista autónomo
+### Deportista en iniciación
 
-- Practica halterofilia de forma recreativa o competitiva local.
-- Entrena entre 2 y 5 días por semana.
-- Conoce sus marcas aproximadas y la terminología básica.
-- Quiere registrar rápido desde el móvil y ver progreso real.
+Necesita aprender posiciones, distinguir variantes y empezar con cargas prudentes. Puede desconocer sus marcas, por lo que el sistema debe funcionar sin inventarlas.
 
-### Persona secundaria: entrenador
+### Deportista con experiencia
 
-- Publica programas y quiere que sean fáciles de copiar y ejecutar.
-- Publica programas y puede revisar las adaptaciones realizadas por otros usuarios.
-- La gestión de múltiples atletas no entra en el MVP; se considera una evolución.
+Quiere planificar varios días, trabajar por porcentajes, registrar marcas fechadas y analizar su evolución.
 
-### Visitante
+### Autor de rutinas
 
-- Consulta rutinas públicas y perfiles públicos.
-- Debe registrarse para copiar una rutina o registrar entrenamientos.
+Diseña y publica planificación, recibe likes y preguntas, responde a otros atletas y conserva la atribución cuando su rutina se importa.
+
+### Visitante autenticado de la comunidad
+
+Explora rutinas y perfiles públicos, filtra por nivel y enfoque, consulta progresión cuando el propietario la comparte e importa una rutina a su biblioteca.
 
 ## 4. Objetivos
 
 ### Objetivo general
 
-Diseñar, implementar y evaluar una aplicación web especializada en halterofilia que combine planificación, registro de entrenamiento, análisis y comunidad.
+Diseñar, implementar y evaluar una aplicación web especializada en halterofilia que combine personalización, planificación, registro, aprendizaje, progreso y comunidad con privacidad por diseño.
 
 ### Objetivos específicos
 
-1. Modelar rutinas, ciclos, sesiones, intentos y marcas con semántica propia del deporte.
-2. Permitir registrar una sesión desde móvil con baja fricción.
-3. Permitir publicar, descubrir y copiar rutinas sin perder autoría ni versión de origen.
-4. Presentar marcas, volumen y evolución con cálculos comprensibles y reproducibles.
-5. Evaluar utilidad, usabilidad, seguridad y rendimiento del producto.
-6. Mantener trazabilidad entre requisitos, decisiones, implementación y pruebas.
+1. Modelar perfiles, niveles, marcas, ejercicios, rutinas versionadas, días, sesiones e interacciones sociales.
+2. Proponer cargas solo a partir de referencias compatibles y explicar la ausencia de datos.
+3. Permitir crear rutinas manualmente o mediante reglas deterministas revisables.
+4. Registrar sesiones desde móvil y conservar intentos, carga, repeticiones y resultado.
+5. Mostrar evolución fechada de sentadilla, sentadilla frontal, arrancada y dos tiempos.
+6. Permitir publicar, descubrir, importar y activar rutinas sin perder procedencia.
+7. Dar al usuario control granular sobre perfil, datos de entrenamiento, progreso y rutinas.
+8. Reforzar adherencia mediante notificaciones, experiencia y logros sin convertirlos en criterio deportivo.
+9. Ofrecer la interfaz en español e inglés.
+10. Mantener trazabilidad entre requisitos, código, migraciones y pruebas.
 
 ## 5. Preguntas de investigación
 
-- **PI1:** ¿Puede una interfaz específica reducir el tiempo y los errores al registrar una sesión de halterofilia frente al método habitual del usuario?
-- **PI2:** ¿Qué información específica de halterofilia resulta más útil para valorar la evolución dentro de un ciclo?
-- **PI3:** ¿El versionado y la procedencia permiten reutilizar rutinas públicas sin perder autoría ni control sobre las modificaciones?
+- **PI1:** ¿Una interfaz específica reduce la fricción al registrar una sesión de halterofilia?
+- **PI2:** ¿La combinación de experiencia, peso corporal y marcas ofrece un punto de partida comprensible para clasificar el nivel?
+- **PI3:** ¿Las recomendaciones deterministas y explicables generan más confianza que una carga sin referencia visible?
+- **PI4:** ¿La procedencia, el perfil del autor y la conversación asociada ayudan a decidir si una rutina pública es adecuada?
+- **PI5:** ¿Los gráficos, logros y notificaciones favorecen la continuidad sin ocultar los datos reales?
 
-## 6. Alcance del MVP
+## 6. Alcance funcional
 
-### Incluido
+### Cuenta y configuración
 
-- Registro, acceso, cierre de sesión y recuperación de cuenta.
-- Perfil con nivel, objetivos, disponibilidad y marcas de referencia.
-- Catálogo curado de ejercicios y variantes.
-- Creación y edición de rutinas organizadas por semanas y días.
-- Prescripción por series, repeticiones, carga absoluta, porcentaje y/o RPE.
-- Ejecución y registro de sesiones, incluidos intentos válidos y fallidos.
-- Cálculo y visualización de marcas personales e histórico.
-- Publicación de rutinas y perfil de autor.
-- Búsqueda y filtros; copia de una rutina manteniendo procedencia.
-- Exportación y eliminación de los datos personales básicos.
+- Registro, inicio y cierre de sesión.
+- Configuración guiada de días de entrenamiento, altura, peso y experiencia.
+- Objetivos multiselección: técnica, fuerza, movilidad y competición.
+- Avatar opcional comprimido y almacenado como base64.
+- Marcas opcionales; opción explícita «Lo desconozco».
+- Cálculo de nivel: iniciación, principiante, intermedio y avanzado.
+- Edición posterior desde Perfil y preferencia de idioma.
 
-### Fuera del MVP
+### Planificación y ejecución
 
-- Diagnóstico, rehabilitación o recomendación médica.
-- Análisis de técnica mediante vídeo o visión artificial.
-- Chat en tiempo real, seguidores, mensajería y notificaciones push.
-- Pagos, suscripciones y marketplace de entrenadores.
-- Integración con wearables o plataformas externas.
-- Clasificaciones competitivas oficiales.
-- Aplicaciones nativas iOS/Android.
+- Rutinas propias editables, eliminables, públicas o privadas.
+- Días independientes con nombre y ejercicios propios.
+- Creación manual y asistente por reglas.
+- Series, repeticiones, carga o porcentaje, descanso y notas.
+- Activación exclusiva de una rutina por usuario.
+- Sesión activa con pausa, reanudación y estado por serie.
+- Resumen de volumen, duración y resultados.
 
-## 7. Flujo principal
+### Aprendizaje y progreso
+
+- Enciclopedia por fuerza básica, movilidad, arrancada y dos tiempos.
+- Variantes desde hang, bloques, potencia, pausa, tempo, déficit, complejos y auxiliares.
+- Descripción, enfoque, claves técnicas, material y espacio para vídeo.
+- Registro fechado y gráficos de las cuatro marcas de referencia.
+
+### Comunidad
+
+- Catálogo de rutinas públicas filtrable por nivel del autor y enfoque.
+- Likes, preguntas y respuestas.
+- Importación como copia independiente y activación.
+- Perfil público del autor.
+- Privacidad independiente para datos de entrenamiento, progreso y rutinas.
+- Notificaciones para likes y preguntas recibidas.
+- XP, nivel de cuenta, historial de experiencia y logros.
+
+### Asistencia
+
+- Entrenador conversacional gratuito basado en reglas y en el contexto del perfil, rutina activa, historial, marcas y enciclopedia.
+- Respuestas acotadas a los datos disponibles.
+- Sin generación opaca de cargas ni sustitución de asesoramiento profesional.
+
+## 7. Fuera de alcance
+
+- Diagnóstico, rehabilitación o tratamiento médico.
+- Análisis automático de vídeo.
+- Chat privado en tiempo real, seguidores o mensajería directa.
+- Pagos, marketplace y gestión comercial de clientes.
+- Integración con wearables.
+- Clasificación deportiva oficial.
+- Aplicaciones nativas.
+- Prescripción generativa autónoma sin supervisión.
+
+## 8. Flujo principal
 
 ```mermaid
 flowchart LR
-    A[Configurar perfil y marcas] --> B[Crear o copiar rutina]
-    B --> C[Revisar y activar]
-    C --> D[Ejecutar sesión]
-    D --> E[Registrar intentos y sensaciones]
-    E --> F[Consultar progreso]
-    F --> G[Adaptar siguiente bloque]
-    G --> C
+    A[Registro] --> B[Configuración guiada]
+    B --> C[Nivel y referencias]
+    C --> D{Crear o descubrir}
+    D -->|Manual o reglas| E[Rutina propia]
+    D -->|Comunidad| F[Importar con procedencia]
+    E --> G[Activar]
+    F --> G
+    G --> H[Entrenar por día]
+    H --> I[Resumen e XP]
+    I --> J[Progreso y logros]
+    J --> D
 ```
 
-## 8. Principios de producto
+## 9. Principios de producto
 
-1. **Registrar primero:** durante una sesión, la acción importante debe estar a uno o dos toques.
-2. **Específico sin ser críptico:** usar vocabulario de halterofilia y explicarlo cuando sea necesario.
-3. **Control del usuario:** ninguna rutina se activa o publica sin una acción explícita.
-4. **Privado por defecto:** entrenamientos y datos físicos son privados salvo publicación explícita.
-5. **Autoría y procedencia:** copiar una rutina crea una versión independiente y conserva el origen.
-6. **Evidencia antes que promesas:** no afirmar que una planificación mejora el rendimiento sin evaluación.
+1. **Privado por defecto:** publicar exige una decisión explícita.
+2. **Sin datos inventados:** una marca ausente produce 0 kg y una indicación técnica, nunca una falsa recomendación.
+3. **Explicabilidad:** las cargas calculadas indican porcentaje y marca utilizada.
+4. **Control del atleta:** toda propuesta se puede editar antes de guardar o activar.
+5. **Procedencia:** importar conserva versión y autor de origen.
+6. **Separación de niveles:** el nivel deportivo no es el nivel de cuenta por XP.
+7. **Progreso verificable:** los gráficos se construyen con registros fechados.
+8. **Interfaz inclusiva:** español e inglés, móvil y escritorio, teclado y etiquetas accesibles.
+9. **Gamificación no clínica:** los logros reconocen uso y constancia, no certifican capacidad deportiva.
+10. **Seguridad junto al dato:** las políticas RLS son la barrera de autorización principal.
 
-## 9. Hipótesis a validar en la fase 0
+## 10. Criterio de éxito
 
-| ID | Hipótesis | Método | Señal de validación inicial |
-| --- | --- | --- | --- |
-| H1 | Registrar intentos desde el móvil es una necesidad frecuente | 3–5 entrevistas + prueba de prototipo | ≥ 3 usuarios describen fricción actual concreta |
-| H2 | Los ciclos compartidos tienen valor si se pueden adaptar | Entrevista + test de concepto | ≥ 60 % intentaría copiar una rutina adecuada a su nivel |
-| H3 | Conservar autoría y versión de origen aumenta la confianza al copiar | Prueba de concepto | ≥ 60 % identifica correctamente origen y estado de su copia |
-| H4 | Un MVP puede omitir vídeo y funciones sociales avanzadas | Priorización MoSCoW | Ninguna aparece como bloqueante del flujo principal |
-
-## 10. Criterio de éxito del TFM
-
-El trabajo se considera exitoso si entrega un MVP desplegado y reproducible, cubre el flujo principal, supera las pruebas automáticas críticas y documenta una evaluación de usabilidad y utilidad con usuarios o, si no fuera posible, una inspección experta con protocolo reproducible.
+El TFM se considera satisfactorio si el MVP desplegado permite completar el flujo principal, protege los datos mediante RLS, mantiene procedencia al importar rutinas, no calcula cargas sin referencia, compila de forma reproducible y aporta evidencia de evaluación técnica y de usabilidad.

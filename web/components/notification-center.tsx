@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { Bell, CheckCheck, Heart, MessageCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useI18n } from '@/lib/i18n';
@@ -12,39 +13,56 @@ function initials(name: string) {
 }
 
 export function NotificationCenter({ onOpenRoutines }: { onOpenRoutines: () => void }) {
-  const { locale, tr } = useI18n();
+  const { language, locale, tr } = useI18n();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState('');
   const unread = useMemo(() => notifications.filter((notification) => !notification.readAt).length, [notifications]);
 
   const refresh = useCallback(async () => {
     try {
-      setNotifications(await workoutRepository.loadNotifications());
+      const loaded = await workoutRepository.loadNotifications();
+      setError('');
+      setNotifications(loaded);
+    } catch {
+      setError(language === 'es' ? 'No se pudieron cargar las notificaciones.' : 'Notifications could not be loaded.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [language]);
 
   useEffect(() => {
-    void refresh();
+    const initialTimer = window.setTimeout(() => void refresh(), 0);
     const timer = window.setInterval(() => void refresh(), 45000);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(timer);
+    };
   }, [refresh]);
 
   async function readNotification(notification: AppNotification) {
     if (!notification.readAt) {
       setNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, readAt: new Date().toISOString() } : item));
-      await workoutRepository.markNotificationsRead([notification.id]);
+      try {
+        await workoutRepository.markNotificationsRead([notification.id]);
+      } catch {
+        setError(tr('No se pudo marcar como leída.', 'The notification could not be marked as read.'));
+        return;
+      }
     }
     setOpen(false);
     onOpenRoutines();
   }
 
   async function readAll() {
-    await workoutRepository.markNotificationsRead();
-    const readAt = new Date().toISOString();
-    setNotifications((current) => current.map((notification) => ({ ...notification, readAt: notification.readAt ?? readAt })));
+    try {
+      await workoutRepository.markNotificationsRead();
+      const readAt = new Date().toISOString();
+      setNotifications((current) => current.map((notification) => ({ ...notification, readAt: notification.readAt ?? readAt })));
+    } catch {
+      setError(tr('No se pudieron actualizar las notificaciones.', 'Notifications could not be updated.'));
+    }
   }
 
   return <Popover open={open} onOpenChange={(nextOpen) => { setOpen(nextOpen); if (nextOpen) void refresh(); }}>
@@ -55,8 +73,8 @@ export function NotificationCenter({ onOpenRoutines }: { onOpenRoutines: () => v
     <PopoverContent className="notification-popover" align="end" sideOffset={10}>
       <header><div><p className="eyebrow">{tr('Actividad', 'Activity')}</p><h2>{tr('Notificaciones', 'Notifications')}</h2></div>{unread > 0 && <button type="button" onClick={() => void readAll()}><CheckCheck aria-hidden="true" />{tr('Leer todas', 'Read all')}</button>}</header>
       <div className="notification-list">
-        {loading ? <p className="notification-empty">{tr('Cargando…', 'Loading…')}</p> : notifications.length ? notifications.map((notification) => <button type="button" className={notification.readAt ? 'notification-item' : 'notification-item is-unread'} onClick={() => void readNotification(notification)} key={notification.id}>
-          <span className="notification-avatar">{notification.actorAvatar ? <img src={notification.actorAvatar} alt="" /> : initials(notification.actorName)}</span>
+        {error ? <p className="notification-error" role="alert">{error}</p> : loading ? <p className="notification-empty">{tr('Cargando…', 'Loading…')}</p> : notifications.length ? notifications.map((notification) => <button type="button" className={notification.readAt ? 'notification-item' : 'notification-item is-unread'} onClick={() => void readNotification(notification)} key={notification.id}>
+          <span className="notification-avatar">{notification.actorAvatar ? <Image src={notification.actorAvatar} alt="" width={36} height={36} unoptimized /> : initials(notification.actorName)}</span>
           <span className="notification-copy"><strong>{notification.actorName}</strong><span>{notification.type === 'routine_like' ? tr('le ha dado like a', 'liked') : tr('ha preguntado en', 'asked a question about')} <b>{notification.routineTitle}</b></span>{notification.questionBody && <small>“{notification.questionBody}”</small>}<time>{formatRelative(notification.createdAt, locale)}</time></span>
           <span className={notification.type === 'routine_like' ? 'notification-kind is-like' : 'notification-kind'}>{notification.type === 'routine_like' ? <Heart aria-hidden="true" fill="currentColor" /> : <MessageCircle aria-hidden="true" />}</span>
         </button>) : <div className="notification-empty"><Bell aria-hidden="true" /><p>{tr('No tienes notificaciones todavía.', 'You do not have any notifications yet.')}</p></div>}

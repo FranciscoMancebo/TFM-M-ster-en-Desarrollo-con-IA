@@ -1,16 +1,22 @@
 # Diseño de experiencia
 
-Los documentos de esta carpeta describen la interacción antes de implementar componentes visuales. Los wireflows son hipótesis de diseño y deben probarse con usuarios.
+La experiencia de Haltero se concibe como un sistema conectado: configuración, entrenamiento, aprendizaje, comunidad y progreso. Los documentos describen flujos y reglas de interacción; la evaluación debe confirmar su comprensión.
 
 | Documento | Propósito |
 | --- | --- |
-| [Recorrido principal móvil](01-wireflow-recorrido-principal.md) | Crear una rutina, activarla, ejecutar una sesión y consultar el resumen. |
+| [Wireflow principal](01-wireflow-recorrido-principal.md) | Recorrer alta, rutina, sesión, progreso, comunidad y logros. |
 
 ## Principios
 
-- La sesión activa domina la interfaz mientras se entrena.
-- Los datos que no cambian se reutilizan; no se vuelven a pedir en cada serie.
-- Planificación y ejecución son objetos distintos: editar una sesión no altera la plantilla.
-- Las acciones destructivas o irreversibles requieren intención explícita.
-- Los estados vacío, error, guardado y sin conexión forman parte del flujo, no son añadidos finales.
+- La primera sesión se personaliza antes de sugerir cargas.
+- Una marca desconocida es un estado válido.
+- Cada día de una rutina es independiente.
+- La sesión activa desplaza la navegación general.
+- Crear, publicar, importar y activar son acciones distintas.
+- La privacidad global y por sección se explican juntas.
+- El nivel deportivo y el nivel de cuenta nunca comparten etiqueta.
+- Las notificaciones informan; no interrumpen.
+- Los logros reconocen actividad, no rendimiento médico/deportivo.
+- Español e inglés mantienen la misma jerarquía.
+- Vacío, carga, error, éxito y permisos forman parte del flujo.
 

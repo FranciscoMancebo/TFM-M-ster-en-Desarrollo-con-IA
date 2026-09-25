@@ -63,7 +63,7 @@ Está orientado a planes estructurados, calendario, vídeos, herramientas de ent
 
 Se presenta específicamente para halterofilia: ciclos de varias semanas, selección de días, seguimiento de dificultad, ajuste de programa y preparación de competición. Su valor principal es recibir programación adaptada, no publicar y versionar rutinas comunitarias.
 
-**Aprendizaje para Haltero:** demuestra que la especialización del dominio es comprensible para el mercado. Haltero no competirá inicialmente en generación o adaptación automática.
+**Aprendizaje para Haltero:** demuestra que la especialización del dominio es comprensible para el mercado. Haltero ofrecerá adaptación determinista y editable, centrada en reglas comprensibles, sin competir inicialmente con una prescripción generativa autónoma.
 
 ### MyStrengthBook
 
@@ -85,7 +85,7 @@ Ofrece programación por porcentajes y RPE/RIR, bloques, notas y cues por ejerci
 
 La oportunidad no es construir “Hevy con otro catálogo”. La hipótesis de producto es:
 
-> Una experiencia móvil de registro diseñada para halterofilia, unida a un portal donde las rutinas públicas se puedan filtrar, copiar y adaptar conservando autoría y versión de origen.
+> Una experiencia móvil diseñada para halterofilia que personaliza el punto de partida, conecta registro y progreso, y permite descubrir, consultar e importar rutinas públicas conservando autoría y versión de origen.
 
 Elementos específicos a validar:
 
@@ -97,18 +97,22 @@ Elementos específicos a validar:
 - ciclos, semana de descarga y preparación de toma de marcas;
 - granularidad de discos y redondeo de carga;
 - rutinas públicas filtrables por nivel, objetivo, días, duración y material.
+- configuración inicial con experiencia, medidas, objetivos y marcas opcionales;
+- privacidad granular de datos, progresión y rutinas;
+- interacción ligera mediante likes, preguntas y notificaciones;
+- adherencia mediante XP y logros separados del nivel deportivo.
 
 ## 6. Límites estratégicos del MVP
 
 No se copiarán características solo porque existan en otros productos. Quedan fuera:
 
-- feed social, seguidores, comentarios y subida de vídeo;
+- feed social, seguidores, mensajería privada y subida de vídeo;
 - marketplace, pagos y administración de clientes;
-- programación automática o adaptativa;
+- programación generativa autónoma o adaptativa en tiempo real;
 - wearables y métricas de salud;
 - recomendaciones de recuperación o tratamiento.
 
-La comunidad del MVP gira alrededor del **contenido reutilizable**, no de maximizar interacción social.
+La comunidad del MVP gira alrededor del **contenido reutilizable y su contexto**. Likes, preguntas, perfiles y notificaciones ayudan a valorar una rutina, pero no persiguen construir un feed de consumo infinito.
 
 ## 7. Hipótesis derivadas
 
@@ -119,6 +123,10 @@ La comunidad del MVP gira alrededor del **contenido reutilizable**, no de maximi
 | HC-03 | Se buscan rutinas creadas por otras personas | Casos reales de intercambio/reutilización | Reducir portal a biblioteca curada |
 | HC-04 | La procedencia influye en la confianza | Usuarios consultan autor/versión antes de copiar | Mantener trazabilidad técnica y simplificar UI |
 | HC-05 | “Último” y “mejor” aceleran el registro | Menor tiempo o preferencia en prototipo | Mostrar solo última carga |
+| HC-06 | La experiencia y las marcas bastan para explicar un nivel inicial | El usuario anticipa o comprende el resultado | Permitir corrección o simplificar niveles |
+| HC-07 | La privacidad granular aumenta disposición a publicar | Usuarios configuran secciones distintas | Limitar perfil a público/privado |
+| HC-08 | Preguntas y rango del autor aumentan la confianza | Se consultan antes de importar | Simplificar la capa social |
+| HC-09 | Los logros favorecen continuidad sin confundirse con nivel técnico | Comprensión correcta en pruebas | Reducir o renombrar gamificación |
 
 ## 8. Fuentes
 

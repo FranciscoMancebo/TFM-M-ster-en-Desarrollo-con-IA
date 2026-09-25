@@ -1,6 +1,6 @@
 # ADR-0001: Monolito modular full-stack con Next.js
 
-- Estado: Propuesto
+- Estado: Aceptado
 - Fecha: 2026-09-09
 
 ## Contexto
@@ -15,19 +15,19 @@ El proyecto lo desarrollará una persona, necesita interfaz web responsive, oper
 
 ## Decisión
 
-Usar Next.js con App Router y TypeScript. Organizar por capacidades y mantener dominio/casos de uso independientes del framework cuando contengan reglas relevantes.
+Usar React con un App Router compatible con Next.js y TypeScript. La implementación se compila con Vinext/Vite para GPT Sites. Organizar por capacidades y mantener reglas, tipos y acceso a datos separados de los componentes cuando aporten lógica relevante.
 
 ## Consecuencias positivas
 
 - Un solo lenguaje y despliegue web.
-- Renderizado servidor para contenido público y datos iniciales.
-- Secretos y acceso privilegiado permanecen en servidor.
+- Una sola aplicación web responsive y portable.
+- Build compatible con el entorno de Sites sin mantener una API propia.
 - Menor carga operativa para el TFM.
 
 ## Consecuencias negativas
 
 - Acoplamiento operativo al ecosistema React/Next.js.
-- Hay que vigilar límites entre Server y Client Components.
+- La aplicación actual concentra orquestación en una página cliente que deberá modularizarse al crecer.
 - Un despliegue único no escala componentes por separado.
 
 ## Criterio de revisión

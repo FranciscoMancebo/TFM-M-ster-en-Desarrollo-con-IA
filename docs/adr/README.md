@@ -13,9 +13,11 @@ Un ADR documenta una decisión con impacto relevante. No es una defensa retrospe
 
 | ADR | Decisión | Estado |
 | --- | --- | --- |
-| [0001](0001-monolito-modular-nextjs.md) | Monolito modular full-stack con Next.js | Propuesto |
-| [0002](0002-postgresql-supabase-rls.md) | PostgreSQL, Supabase Auth y RLS | Propuesto |
-| [0003](0003-versiones-inmutables-de-rutinas.md) | Versiones publicadas inmutables y copias con procedencia | Propuesto |
+| [0001](0001-monolito-modular-nextjs.md) | Monolito modular web con React/Next.js compatible | Aceptado |
+| [0002](0002-postgresql-supabase-rls.md) | PostgreSQL, Supabase Auth y RLS | Aceptado |
+| [0003](0003-versiones-inmutables-de-rutinas.md) | Versiones publicadas inmutables y copias con procedencia | Aceptado |
+| [0004](0004-personalizacion-determinista.md) | Nivel y rutinas mediante reglas explicables | Aceptado |
+| [0005](0005-perfiles-sociales-y-gamificacion.md) | Privacidad granular, eventos sociales y gamificación | Aceptado |
 
 ## Plantilla
 

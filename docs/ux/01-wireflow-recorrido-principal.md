@@ -2,192 +2,153 @@
 
 ## 1. Objetivo
 
-Validar que una persona puede crear una rutina sencilla, activarla y registrar su primera sesión desde un móvil sin necesitar instrucciones externas.
+Validar que un atleta puede pasar de una cuenta nueva a una rutina activa, registrar una sesión y comprender su progreso, conservando control sobre privacidad y comunidad.
 
-Este wireflow es de baja fidelidad: valida orden, contenido, acciones y estados. No fija todavía la identidad visual definitiva.
-
-## 2. Recorrido feliz
+## 2. Mapa general
 
 ```mermaid
 flowchart LR
-    A[Mis rutinas] -->|Nueva rutina| B[Datos básicos]
-    B -->|Continuar| C[Editor semanal]
-    C -->|Revisar| D[Resumen de rutina]
-    D -->|Activar| E[Hoy]
-    E -->|Iniciar sesión| F[Sesión activa]
-    F -->|Finalizar| G[Resumen de sesión]
-    G -->|Ver historial| H[Historial]
+    A[Acceso] --> B[Configuración en 5 pasos]
+    B --> C[Hoy]
+    C --> D[Rutinas]
+    D --> E{Crear}
+    E -->|Manual| F[Editor por días]
+    E -->|Reglas| G[Propuesta explicada]
+    G --> F
+    F --> H[Guardar/publicar]
+    H --> I[Activar]
+    I --> J[Sesión]
+    J --> K[Resumen]
+    K --> L[Progreso]
+    D --> M[Comunidad]
+    M --> N[Perfil de autor]
+    M --> O[Importar y activar]
+    L --> P[Logros]
 ```
 
-## 3. Arquitectura de navegación del MVP
+## 3. Navegación
 
-Navegación inferior móvil:
+| Destino | Propósito |
+| --- | --- |
+| Hoy | Rutina activa y plan inmediato |
+| Rutinas | Biblioteca propia, comunidad y creación |
+| Entrenador | Consultas contextuales basadas en reglas |
+| Ejercicios | Enciclopedia por familias |
+| Progreso | Marcas e historial |
+| Logros | XP, nivel de cuenta e insignias |
+| Perfil | Datos, idioma, privacidad y cuenta |
 
-| Destino | Propósito | Acción principal |
-| --- | --- | --- |
-| Hoy | Ver y ejecutar lo programado | Iniciar o reanudar sesión |
-| Rutinas | Gestionar rutinas propias | Crear rutina |
-| Explorar | Buscar rutinas publicadas | Filtrar o copiar |
-| Progreso | Consultar marcas e histórico | Elegir movimiento/periodo |
-| Perfil | Preferencias, privacidad y cuenta | Editar configuración |
+La campana permanece accesible fuera de una sesión activa. En móvil, la navegación se presenta en la parte inferior; en escritorio, en la barra lateral.
 
-Durante una sesión activa, la navegación general desaparece para evitar abandonos accidentales. Se mantiene una salida explícita que guarda el progreso.
+## 4. Configuración inicial
 
-## 4. Pantallas
+### Paso 1 — Disponibilidad
 
-### P01 — Mis rutinas
+Elegir de uno a siete días. No se presupone una semana estándar.
 
-**Debe mostrar:** rutinas activas y borradores, objetivo, duración, frecuencia y estado.
+### Paso 2 — Medidas
 
-**Acción primaria:** `Nueva rutina`.
+Altura y peso con rango validado. El peso participa en la fuerza relativa; la altura se conserva como contexto.
 
-**Acciones secundarias:** abrir, duplicar, archivar y explorar rutinas públicas.
+### Paso 3 — Experiencia
 
-**Estado vacío:** explica la diferencia entre crear y copiar; no presenta un panel vacío genérico.
+Cuatro opciones desde «Nunca» hasta «Más de dos años». La experiencia técnica limita el nivel.
 
-### P02 — Datos básicos
+### Paso 4 — Marcas
 
-Campos mínimos:
+Cuatro movimientos. Cada campo admite un peso o «Lo desconozco». No existe valor predeterminado deportivo.
 
-- nombre;
-- objetivo;
-- nivel recomendado;
-- número de semanas;
-- días por semana.
+### Paso 5 — Objetivos y avatar
 
-El borrador se guarda al continuar. Los detalles opcionales se posponen para evitar un formulario inicial largo.
+Multiselección y foto opcional. Completar guarda nivel, perfil y referencias.
 
-### P03 — Editor semanal
+## 5. Rutinas
 
-Jerarquía visible: semana → día → ejercicio → prescripción.
+### Selector de modo
 
-Cada prescripción muestra:
+- **Manual:** borrador vacío y control total.
+- **Asistente por reglas:** propuesta por nivel, enfoque, días y marcas.
 
-- ejercicio o complejo;
-- series y repeticiones;
-- carga absoluta o porcentaje de una marca concreta;
-- RPE opcional;
-- descanso y nota opcionales.
+La propuesta muestra sus supuestos, cargas, referencias ausentes y permite editar todo.
 
-El orden se puede cambiar, pero el arrastre no será el único mecanismo accesible. Deben existir acciones `Mover arriba` y `Mover abajo`.
+### Editor
 
-### P04 — Revisión y activación
+- título, descripción, nivel, enfoque, semanas y visibilidad;
+- pestañas para cada día;
+- nombre independiente;
+- lista propia de ejercicios;
+- series, repeticiones, intensidad, descanso y nota;
+- añadir o eliminar día;
+- confirmación al eliminar rutina.
 
-Resume duración, frecuencia, objetivo y primera semana. Señala datos incompletos antes de permitir la activación.
+### Activación e importación
 
-Activar crea una asignación con fecha de inicio; no modifica la versión de rutina. Publicar es una acción distinta y no aparece en este recorrido.
+Activar reemplaza la asignación activa. Importar una rutina pública crea primero una copia privada con procedencia y después puede activarla.
 
-### P05 — Hoy
+## 6. Sesión
 
-La primera vista útil para un usuario con rutina activa debe mostrar inmediatamente:
+La sesión muestra día, progreso, ejercicios y series. Carga y repeticiones son editables. Cada serie puede marcarse como completada o fallida. Pausar detiene el temporizador, no borra datos.
 
-- semana y día actual;
-- número de ejercicios y estimación de duración si existe;
-- primer ejercicio;
-- botón `Iniciar sesión` o `Reanudar sesión`.
+Finalizar con pendientes exige confirmación. El resumen muestra duración, volumen, completadas, fallidas y omitidas.
 
-No se antepone una cabecera promocional ni un resumen estadístico al entrenamiento pendiente.
+## 7. Progreso
 
-### P06 — Sesión activa
+Las tarjetas de los cuatro movimientos actúan como selector. El formulario inferior hereda el levantamiento seleccionado y solo solicita peso y fecha. El gráfico usa datos reales ordenados cronológicamente.
 
-Cada ejercicio muestra la prescripción, la última ejecución y las series actuales. Para registrar una serie:
+## 8. Enciclopedia y entrenador
 
-1. se reutilizan carga y repeticiones previstas o anteriores;
-2. el usuario modifica solo el dato que cambió;
-3. marca `Completada` o `Fallida`;
-4. el foco avanza a la siguiente serie y puede iniciar el descanso.
+La enciclopedia separa fuerza, movilidad, arrancada y dos tiempos. Cada ficha explica propósito, claves y material; el vídeo es opcional.
 
-Acciones permitidas: añadir serie, añadir ejercicio, omitir, reordenar y escribir una nota. Estos cambios afectan a la sesión, no a la plantilla.
+El entrenador responde sobre el día, cargas, progresión y ejercicios a partir del contexto disponible. Si una pregunta queda fuera, explica que requeriría un modelo opcional.
 
-### P07 — Resumen
+## 9. Comunidad y perfiles
 
-Muestra hechos, no juicios:
+La comunidad permite filtrar, consultar plan, abrir autor, dar like, preguntar e importar. Un perfil público puede mostrar:
 
-- ejercicios y series completadas/fallidas/omitidas;
-- volumen calculado y su fórmula accesible;
-- duración;
-- posibles marcas pendientes de confirmación;
-- diferencias respecto a lo planificado.
+- nivel deportivo y biografía;
+- nivel de cuenta, XP y logros;
+- datos de entrenamiento;
+- progresión;
+- rutinas públicas.
 
-Desde aquí se accede al historial o a `Hoy`. Compartir la sesión queda fuera del MVP.
+Las tres últimas secciones respetan controles independientes.
 
-## 5. Estados alternativos
+## 10. Notificaciones y logros
 
-```mermaid
-flowchart TD
-    A[Sesión activa] --> B{¿Hay conexión?}
-    B -->|Sí| C[Guardar serie en servidor]
-    B -->|No| D[Conservar cambio pendiente]
-    D --> E[Mostrar estado Sin sincronizar]
-    E -->|Vuelve la conexión| C
-    C --> F{¿Conflicto?}
-    F -->|No| G[Confirmar guardado]
-    F -->|Sí| H[Conservar ambas versiones y pedir elección]
-```
+La campana muestra contador, actor, rutina, tipo y fecha relativa. Seleccionar una notificación la marca como leída y abre Rutinas. «Leer todas» solo afecta al usuario actual.
 
-El soporte offline completo es una decisión pendiente. Incluso sin implementarlo en el MVP, la interfaz debe diferenciar `Guardando`, `Guardado`, `Sin conexión` y `Error`.
+Logros muestra nivel de cuenta, XP dentro del nivel, colección desbloqueada, objetivos pendientes y registro reciente.
 
-Otros estados:
+## 11. Estados críticos
 
-- rutina sin marca necesaria para calcular porcentaje;
-- ejercicio retirado del catálogo pero presente en histórico;
-- sesión abandonada que puede reanudarse;
-- día parcialmente completado;
-- intento fallido que no genera marca;
-- error al activar por datos incompletos;
-- rutina pública retirada después de haber sido copiada.
+- sin rutina activa;
+- sin sesiones;
+- marca desconocida;
+- rutina sin referencia compatible;
+- comunidad vacía;
+- perfil privado;
+- sección pública deshabilitada;
+- notificaciones vacías o no disponibles;
+- sin logros;
+- error de red;
+- guardado en curso.
 
-## 6. Reglas de interacción
+## 12. Reglas de interacción
 
-1. Una sola acción primaria visible por pantalla o bloque de decisión.
-2. Objetivos táctiles de aproximadamente 44 × 44 px y campos editables con texto de al menos 16 px en móvil.
-3. Ningún significado depende solo del color: `Completada`, `Fallida` y `Omitida` llevan texto o símbolo.
-4. La serie no se marca automáticamente al escribir un peso.
-5. Finalizar con series pendientes pide confirmación y explica qué ocurrirá.
-6. Salir conserva el progreso y permite reanudar.
-7. Cambiar un valor calculado a partir de porcentaje muestra la carga aplicada y la marca de referencia.
-8. El temporizador ayuda, pero nunca bloquea el registro.
-9. Los mensajes de guardado no desplazan controles durante la sesión.
-10. Teclado, lector de pantalla y orientación vertical cubren el flujo principal.
+1. El control principal aparece antes que información secundaria.
+2. Texto de uso habitual ≥ 14 px y campos móviles ≥ 16 px.
+3. Nada depende solo del color.
+4. Las acciones destructivas piden confirmación.
+5. Las propuestas nunca se guardan sin revisión.
+6. La interfaz muestra origen y autor de copias.
+7. El usuario puede volver de un diálogo sin perder el contexto.
+8. Los errores secundarios no bloquean la sesión.
+9. El idioma se mantiene después de recargar.
+10. Teclado, foco y lector cubren los flujos críticos.
 
-## 7. Contenido realista para el prototipo
+## 13. Guion breve de prueba
 
-- Rutina: `Base técnica — 4 semanas`.
-- Objetivo: técnica y consistencia.
-- Frecuencia: 3 días por semana.
-- Día: `Semana 1 · Día 1`.
-- Arrancada: `5 × 2 al 70 %`, referencia 60 kg, carga aplicada 42 kg.
-- Sentadilla frontal: `4 × 3 al 75 %`, referencia 100 kg, carga aplicada 75 kg.
-- Tirón de arrancada: `3 × 3 al 90 % de arrancada`, carga aplicada 54 kg.
+> Crea una cuenta, indica tres días, registra 110 kg de sentadilla y 95 kg de sentadilla frontal, deja desconocidos arrancada y dos tiempos, genera una rutina técnica, cambia el segundo día, actívala y completa una sesión. Después importa una rutina pública, pregunta al autor, revisa la notificación desde su cuenta y consulta sus logros.
 
-Estos datos son ficticios y sirven para probar la interfaz, no constituyen una recomendación de entrenamiento.
-
-## 8. Guion de prueba del wireflow
-
-Dar al participante esta situación, sin explicar la navegación:
-
-> Quieres preparar una rutina de cuatro semanas y tres días. En el primer día harás arrancada 5 × 2 al 70 %. Activa la rutina, comienza la sesión, registra una serie completada con 42 kg y otra fallida, y finaliza.
-
-Observar:
-
-- dónde espera iniciar la creación;
-- si entiende semanas/días sin explicación;
-- si interpreta porcentaje y carga aplicada;
-- si distingue fallo de serie incompleta;
-- si sabe que cambiar la sesión no cambia la rutina;
-- si encuentra cómo terminar y qué entiende del resumen.
-
-Preguntas posteriores:
-
-1. ¿Qué parte te hizo dudar?
-2. ¿Qué esperabas que ocurriera al activar?
-3. ¿Dónde buscarías la última carga utilizada?
-4. ¿Qué cambio harías durante un entrenamiento real?
-
-## 9. Criterios para iterar
-
-- Si 2 de 3 participantes fallan la misma tarea, revisar flujo o etiqueta antes de desarrollar.
-- Si la representación de complejos no se entiende, resolver DP-01 antes del modelo físico.
-- Si activar/publicar se confunden, separar vocabulario y ubicación.
-- Si registrar una serie supera el objetivo de acciones, rediseñar P06 antes de añadir más métricas.
+Observar comprensión de marcas desconocidas, días, activación, procedencia, privacidad y diferencia entre niveles.
 

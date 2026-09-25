@@ -2,98 +2,177 @@
 
 ## 1. Objetivo
 
-La evaluación debe demostrar si Haltero permite planificar y registrar entrenamientos de halterofilia con menos fricción, mantiene la privacidad de los datos y conserva correctamente la procedencia de las rutinas compartidas.
+Evaluar si Haltero permite configurar, planificar, ejecutar y analizar entrenamiento de halterofilia con una experiencia comprensible, protege la información privada y mantiene correctamente las relaciones sociales y de procedencia.
+
+La evaluación separa tres planos:
+
+- corrección técnica;
+- usabilidad y comprensión;
+- utilidad percibida y confianza.
 
 ## 2. Preguntas y métricas
 
-| Pregunta | Métrica principal | Evidencia |
+| Pregunta | Métrica | Evidencia |
 | --- | --- | --- |
-| ¿Se registra una sesión con fluidez desde móvil? | Tiempo, errores y número de acciones por serie | Prueba moderada con tareas |
-| ¿Se entiende el progreso mostrado? | Respuestas correctas a preguntas sobre gráficos | Test de comprensión |
-| ¿Se distingue una copia de su original? | Identificación de autor, versión y estado | Prueba de portal y copia |
-| ¿Los datos privados permanecen aislados? | Pruebas allow/deny superadas | Suite RLS y pruebas de integración |
-| ¿La aplicación resulta usable? | SUS o UMUX-Lite + observaciones | Cuestionario posterior |
+| ¿Se completa la configuración sin ayuda? | Finalización, tiempo y errores | Prueba moderada |
+| ¿Se entiende el nivel deportivo? | Explicación correcta de los factores | Preguntas posteriores |
+| ¿Se evita asumir una carga sin marca? | Resultado esperado de 0 kg y mensaje | Caso automatizado + tarea |
+| ¿Se configura cada día de forma independiente? | Rutina resultante y errores | Tarea de edición |
+| ¿Se registra una sesión con fluidez? | Tiempo y acciones por serie | Observación móvil |
+| ¿Se interpreta la progresión? | Respuestas correctas sobre el gráfico | Test de comprensión |
+| ¿Se distingue original de copia? | Identificación de autor y procedencia | Tarea comunitaria |
+| ¿Se entiende la privacidad granular? | Configuración y predicción de visibilidad | Tarea con dos cuentas |
+| ¿Notificaciones y logros son comprensibles? | Detección, lectura y descripción | Tarea social |
+| ¿Los datos permanecen aislados? | Pruebas allow/deny | pgTAP e integración |
 
-## 3. Evaluación con usuarios
+## 3. Muestra
 
-### Muestra inicial
+Entre 5 y 8 deportistas adultos con niveles distintos. Se intentará incluir al menos:
 
-Entre 5 y 8 participantes para evaluación formativa, procurando incluir niveles y métodos de registro distintos. Si es posible, añadir una revisión separada con un entrenador.
+- dos personas con menos de seis meses de experiencia;
+- dos personas con más de seis meses;
+- una persona que programe o asesore a otras.
 
-La muestra no permite generalizar al conjunto de deportistas; sirve para encontrar problemas y obtener evidencia inicial.
+La muestra es formativa y no permite generalizar a toda la población.
 
-### Tareas
+## 4. Escenarios de prueba
 
-1. Crear un perfil y registrar marcas de referencia.
-2. Crear una rutina de dos semanas con dos días por semana.
-3. Iniciar una sesión, completar series, registrar un fallo y finalizar.
-4. Interpretar la evolución de un movimiento.
-5. Encontrar una rutina pública, identificar su autor y copiarla.
-6. Modificar la copia y comprobar que se mantiene privada e independiente.
+### T1 — Alta y configuración
 
-### Datos recogidos
+Crear una cuenta, elegir tres días, introducir altura y peso, declarar experiencia y objetivos, registrar solo sentadilla y sentadilla frontal y dejar desconocidos arrancada y dos tiempos.
 
-- finalización de tarea;
-- tiempo por tarea;
-- errores, retrocesos y solicitudes de ayuda;
-- número de acciones para registrar una serie;
-- comentarios mediante pensamiento en voz alta;
-- puntuación de usabilidad;
-- entrevista breve sobre utilidad y confianza.
+**Éxito:** el usuario termina, entiende que las marcas son opcionales y no aparece una carga ficticia para movimientos sin referencia.
 
-No se usarán marcas o datos de salud reales si no son necesarios. Se facilitarán datos ficticios y se solicitará consentimiento informado.
+### T2 — Rutina asistida por días
 
-## 4. Evaluación técnica
+Generar una rutina de tres días con enfoque técnico, revisar la explicación de cargas y cambiar únicamente el segundo día.
 
-### Funcional
+**Éxito:** los días conservan contenidos diferentes y el usuario identifica qué datos originaron la propuesta.
 
-- Pruebas unitarias para reglas de carga, volumen, marcas y versionado.
-- Pruebas de integración para casos de uso y persistencia.
-- Pruebas E2E para sesión, publicación y copia.
+### T3 — Entrenamiento
 
-### Seguridad y privacidad
+Activar la rutina, iniciar la sesión, completar una serie, fallar otra, pausar, reanudar y finalizar con una serie pendiente.
 
-- Una política de prueba positiva y negativa por operación protegida.
-- Intentos de acceso cruzado entre dos usuarios de prueba.
-- Verificación de que una rutina privada no aparece en rutas ni búsquedas públicas.
-- Exportación y borrado con comprobación de datos relacionados.
+**Éxito:** el estado persiste y el resumen coincide con los datos introducidos.
 
-### Accesibilidad y rendimiento
+### T4 — Progreso
 
-- Navegación por teclado y lector de pantalla en flujos críticos.
-- Auditoría automática complementada con revisión manual.
-- Core Web Vitals en páginas representativas y condiciones documentadas.
-- Comprobación desde 360 px y escritorio, sin depender solo de emulación.
+Seleccionar arrancada, añadir una marca con fecha y explicar la tendencia.
 
-## 5. Umbrales iniciales
+**Éxito:** el formulario no pide volver a elegir ejercicio y el punto aparece en el gráfico correcto.
 
-| Indicador | Umbral |
+### T5 — Comunidad
+
+Filtrar una rutina por nivel y enfoque, abrir el perfil del autor, dar like, preguntar, importar y activar.
+
+**Éxito:** la copia aparece en Mis rutinas, conserva autor, y las acciones sociales continúan asociadas al original.
+
+### T6 — Privacidad
+
+Publicar el perfil, permitir rutinas pero ocultar datos y progreso. Consultarlo desde otra cuenta.
+
+**Éxito:** solo se muestran las secciones autorizadas.
+
+### T7 — Notificaciones y logros
+
+Desde una segunda cuenta, dar like y formular una pregunta. Volver a la cuenta autora, abrir la campana, marcar como leído y consultar XP/logros.
+
+**Éxito:** existen dos notificaciones, el contador disminuye y la XP no se duplica al recargar.
+
+### T8 — Idioma
+
+Cambiar a inglés, recorrer Perfil, Rutinas y Logros y volver a iniciar sesión.
+
+**Éxito:** la preferencia persiste y los controles funcionales aparecen en inglés.
+
+## 5. Evaluación técnica
+
+### Compilación y tipos
+
+- `npx tsc --noEmit`.
+- build de producción mediante el script de Sites.
+- revisión de advertencias de tamaño de bundle.
+
+### Dominio
+
+Casos unitarios previstos:
+
+- nivel con y sin marcas;
+- limitación por experiencia;
+- referencia compatible por ejercicio;
+- ausencia de marca;
+- redondeo a 2,5 kg;
+- volumen excluyendo fallos;
+- fórmula de nivel de cuenta.
+
+### Datos y seguridad
+
+- RLS positiva y negativa con dos usuarios.
+- Perfil base ilegible para terceros.
+- Proyección pública según permisos.
+- Una sola asignación activa.
+- Publicación inmutable.
+- Like único y sin auto-like.
+- Pregunta y respuesta con roles correctos.
+- Notificaciones solo del destinatario.
+- XP idempotente.
+- RPC inaccesibles para `anon`.
+
+### Accesibilidad
+
+- recorrido completo con teclado;
+- nombres accesibles de iconos y botones;
+- foco visible en diálogos, popovers y formularios;
+- contraste y significado no dependiente del color;
+- zoom de texto al 200 %;
+- anchos de 360, 768 y 1440 px.
+
+### Rendimiento
+
+Medir en el despliegue final:
+
+- LCP, INP y CLS;
+- peso del JavaScript inicial;
+- tiempo de carga de comunidad, enciclopedia y logros;
+- impacto del sondeo de notificaciones cada 45 segundos.
+
+## 6. Umbrales
+
+| Indicador | Objetivo |
 | --- | --- |
-| Finalización del flujo principal | ≥ 80 % sin ayuda crítica |
-| Registro de una serie ya configurada | Máximo 2 acciones tras cambiar el dato necesario |
-| Comprensión de autoría/procedencia | ≥ 80 % de respuestas correctas |
-| Pruebas de aislamiento | 100 % superadas |
-| Errores críticos abiertos | 0 antes de la entrega |
-| Accesibilidad | Sin incidencias A/AA críticas en flujos principales |
-| p75 LCP / INP | < 2,5 s / < 200 ms en el entorno documentado |
+| Finalización del recorrido principal | ≥ 80 % sin ayuda crítica |
+| Configuración inicial | ≥ 80 % sin volver atrás por etiqueta ambigua |
+| Registro de una serie ya configurada | Máximo dos acciones tras cambiar el valor |
+| Comprensión de carga sin referencia | 100 % identifica que debe elegir una carga técnica |
+| Procedencia original/copia | ≥ 80 % de respuestas correctas |
+| Privacidad granular | 100 % de tareas sin exposición |
+| Aislamiento RLS | 100 % de pruebas |
+| Errores críticos | 0 antes de entrega |
+| WCAG | Sin incidencias A/AA críticas en flujos |
+| p75 LCP / INP | < 2,5 s / < 200 ms en entorno documentado |
 
-Los umbrales se revisarán después del prototipo, antes de observar resultados, y cualquier cambio quedará justificado.
+## 7. Registro de resultados
 
-## 6. Análisis
+Cada ejecución debe conservar:
 
-- Resumir métricas cuantitativas con mediana y rango cuando la muestra sea pequeña.
-- Clasificar incidencias por severidad, frecuencia y flujo.
-- Separar observación, interpretación y decisión de diseño.
-- Relacionar cada hallazgo con requisito y cambio realizado o trabajo futuro.
-- Informar también resultados negativos y participantes excluidos.
+- versión o commit probado;
+- fecha, entorno y dispositivo;
+- datos ficticios utilizados;
+- resultado por tarea;
+- incidencias con severidad;
+- captura o salida automatizada cuando sea apropiado;
+- decisión tomada.
 
-## 7. Amenazas a la validez
+Los resultados no ejecutados deben figurar como «pendientes», no como superados.
 
-- Muestra pequeña y de conveniencia.
-- Participantes con distinto conocimiento técnico/deportivo.
-- Efecto aprendizaje al repetir tareas.
-- Datos ficticios menos significativos que una sesión real.
-- Condiciones de laboratorio distintas a un gimnasio.
+## 8. Amenazas a la validez
 
-Mitigaciones: criterios de inclusión explícitos, mismo guion, orden de tareas estable o contrabalanceado cuando proceda, registro de incidencias y una prueba contextual breve si es viable y segura.
+- muestra pequeña y de conveniencia;
+- familiaridad desigual con la terminología;
+- datos ficticios menos significativos;
+- conectividad distinta a un gimnasio;
+- efecto aprendizaje en tareas relacionadas;
+- sesgo del desarrollador como moderador.
+
+Mitigaciones: guion estable, criterios de inclusión, datos comparables, separación entre observación e interpretación y revisión externa cuando sea posible.
 

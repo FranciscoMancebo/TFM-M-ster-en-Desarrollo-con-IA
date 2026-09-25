@@ -2,129 +2,187 @@
 
 ## 1. Actores y permisos
 
-| Actor | Puede consultar | Puede modificar |
+| Actor | Consulta | Modifica |
 | --- | --- | --- |
-| Visitante | Rutinas y perfiles publicados | Nada |
-| Usuario autenticado | Contenido público y sus propios datos privados | Su perfil, rutinas, sesiones y publicaciones |
-| Autor de rutina | Su publicación y estadísticas agregadas básicas | Publicación y nuevas versiones propias |
-| Administrador | Catálogo y contenido denunciado | Catálogo, moderación y estados de contenido |
+| Usuario no autenticado | Pantalla de acceso | Registro e inicio de sesión |
+| Usuario autenticado | Sus datos y contenido público permitido | Perfil, marcas, rutinas, sesiones, likes y preguntas propias |
+| Autor de rutina | Actividad de sus rutinas | Publicación, respuestas y nuevas versiones |
+| Propietario de perfil | Vista completa propia | Visibilidad global y permisos por sección |
+| Sistema | Reglas, métricas y eventos autorizados | Notificaciones, XP y logros mediante funciones y triggers |
 
-## 2. Requisitos funcionales del MVP
+La identidad efectiva procede de `auth.uid()`. Un identificador enviado desde el navegador nunca concede propiedad.
 
-### Cuenta y perfil
+## 2. Requisitos funcionales
 
-- **RF-001:** el usuario puede registrarse, iniciar y cerrar sesión.
-- **RF-002:** el usuario puede definir alias público, nivel, objetivos, días disponibles y equipamiento.
-- **RF-003:** el usuario puede mantener privadas sus marcas y sesiones.
-- **RF-004:** el usuario puede solicitar exportación y eliminación de sus datos.
+### Identidad, configuración y perfil
 
-### Catálogo y marcas
+- **RF-001:** registrarse, iniciar sesión y cerrar sesión.
+- **RF-002:** completar una configuración inicial en cinco pasos.
+- **RF-003:** registrar días por semana, altura, peso y experiencia.
+- **RF-004:** seleccionar uno o varios objetivos entre técnica, fuerza, movilidad y competición.
+- **RF-005:** añadir un avatar opcional, validado y comprimido antes de guardarlo en base64.
+- **RF-006:** registrar o declarar desconocidas las marcas de sentadilla, arrancada, sentadilla frontal y dos tiempos.
+- **RF-007:** calcular el nivel deportivo a partir de experiencia, peso y marcas relativas disponibles.
+- **RF-008:** editar posteriormente todos los datos configurables del perfil.
+- **RF-009:** seleccionar español o inglés y persistir la preferencia.
+- **RF-010:** publicar o privatizar el perfil y controlar por separado datos de entrenamiento, progreso y rutinas.
 
-- **RF-010:** el sistema ofrece un catálogo de movimientos de halterofilia y ejercicios auxiliares.
-- **RF-011:** el catálogo distingue movimiento base y variante.
-- **RF-012:** el usuario puede registrar una marca con carga, repeticiones, fecha y origen.
-- **RF-013:** el sistema detecta una posible nueva marca al finalizar una sesión y pide confirmación.
+### Enciclopedia y marcas
+
+- **RF-020:** consultar un catálogo curado de ejercicios.
+- **RF-021:** filtrar o buscar por nombre, categoría y enfoque.
+- **RF-022:** mostrar explicación, claves, material, unilateralidad y espacio de vídeo.
+- **RF-023:** incluir fuerza, movilidad, arrancada, dos tiempos y variantes con pausa, tempo, hang, bloques, potencia, déficit y complejos.
+- **RF-024:** registrar una nueva marca desde el gráfico seleccionado, sin repetir el selector de ejercicio.
+- **RF-025:** almacenar carga y fecha, y representar la evolución cronológica.
+- **RF-026:** usar únicamente la marca compatible para calcular un porcentaje.
 
 ### Rutinas
 
-- **RF-020:** el usuario puede crear una rutina con nombre, objetivo, nivel, duración y frecuencia.
-- **RF-021:** una rutina contiene semanas, días y prescripciones ordenadas.
-- **RF-022:** cada prescripción admite series, repeticiones, porcentaje o carga, RPE opcional y descanso.
-- **RF-023:** el usuario puede duplicar y editar una rutina sin alterar el original.
-- **RF-024:** activar una rutina crea una asignación estable para registrar su ejecución.
+- **RF-030:** crear, editar y eliminar rutinas propias.
+- **RF-031:** elegir modo manual o asistente por reglas.
+- **RF-032:** definir título, descripción, nivel, enfoque, semanas y visibilidad.
+- **RF-033:** configurar entre uno y siete días independientes.
+- **RF-034:** añadir ejercicios con series, repeticiones, intensidad, descanso y notas.
+- **RF-035:** generar una propuesta según nivel, enfoque, disponibilidad y marcas.
+- **RF-036:** dejar una carga en 0 kg y explicar la ausencia cuando no existe una marca necesaria.
+- **RF-037:** publicar una versión inmutable o conservarla privada.
+- **RF-038:** activar una rutina propia; solo puede existir una asignación activa por usuario.
 
-### Entrenamientos
+### Entrenamiento
 
-- **RF-030:** el usuario puede iniciar la sesión planificada del día.
-- **RF-031:** puede registrar carga, repeticiones, RPE, validez del intento y notas.
-- **RF-032:** puede añadir, reordenar u omitir ejercicios durante la sesión.
-- **RF-033:** puede pausar y reanudar una sesión sin perder datos.
-- **RF-034:** al finalizar ve un resumen de volumen, intentos y posibles marcas.
+- **RF-040:** mostrar el día correspondiente de la rutina activa.
+- **RF-041:** iniciar o reanudar una sesión.
+- **RF-042:** editar carga y repeticiones de cada serie.
+- **RF-043:** marcar una serie como completada o fallida.
+- **RF-044:** pausar el temporizador sin perder la sesión.
+- **RF-045:** confirmar la finalización si quedan series pendientes.
+- **RF-046:** guardar duración, volumen, completadas, fallidas y omitidas.
+- **RF-047:** consultar el historial de sesiones terminadas.
 
-### Comunidad
+### Comunidad y perfiles públicos
 
-- **RF-040:** el autor puede publicar o retirar una rutina.
-- **RF-041:** un visitante puede buscar y filtrar rutinas por nivel, objetivo, frecuencia y duración.
-- **RF-042:** un usuario puede copiar una rutina pública a su biblioteca.
-- **RF-043:** la copia conserva identificador y versión de procedencia.
-- **RF-044:** las modificaciones posteriores del autor no cambian copias ya creadas.
+- **RF-050:** explorar rutinas públicas.
+- **RF-051:** filtrar por nivel del autor y enfoque: movilidad, fuerza, técnica o competición.
+- **RF-052:** consultar plan, autor, likes, preguntas y respuestas.
+- **RF-053:** dar o retirar like.
+- **RF-054:** preguntar al autor; el autor puede responder.
+- **RF-055:** importar una rutina como copia propia y activarla.
+- **RF-056:** conservar versión y autor de procedencia.
+- **RF-057:** mostrar en la biblioteca propia las acciones sociales de la rutina externa importada.
+- **RF-058:** abrir el perfil público de un autor.
+- **RF-059:** respetar la visibilidad granular del perfil consultado.
 
-## 3. Historias de usuario prioritarias
+### Notificaciones y logros
 
-### HU-01 — Registrar una sesión
+- **RF-060:** notificar al propietario cuando otro usuario da like a su rutina.
+- **RF-061:** notificar cuando recibe una pregunta.
+- **RF-062:** mostrar contador de no leídas.
+- **RF-063:** marcar una o todas las notificaciones como leídas.
+- **RF-064:** otorgar XP idempotente por sesión, marca, publicación e interacción recibida.
+- **RF-065:** calcular el nivel de cuenta a partir del XP acumulado.
+- **RF-066:** desbloquear logros por umbrales de actividad.
+- **RF-067:** mostrar logros desbloqueados, progreso de los pendientes e historial reciente de XP.
+- **RF-068:** mostrar nivel, XP y número de logros en perfiles públicos.
 
-Como deportista, quiero completar las series desde el móvil para mantener un histórico sin interrumpir el entrenamiento.
+### Entrenador contextual
+
+- **RF-070:** responder preguntas predefinidas sobre el entrenamiento del día, cargas, progreso y ejercicios.
+- **RF-071:** utilizar perfil, rutina, historial, marcas y enciclopedia como contexto.
+- **RF-072:** mantener las respuestas dentro del contexto disponible y declarar sus límites.
+- **RF-073:** funcionar sin coste de inferencia ni clave de modelo mediante reglas locales.
+
+## 3. Historias prioritarias y aceptación
+
+### HU-01 — Configurar mi punto de partida
+
+Como atleta nuevo, quiero indicar experiencia, disponibilidad y referencias para que el sistema no presuponga mi nivel.
 
 **Aceptación:**
 
-- Dada una sesión activa, al confirmar una serie se guarda carga, repeticiones, RPE y validez.
-- La siguiente serie reutiliza valores anteriores cuando procede.
-- Recargar la página no elimina series ya confirmadas.
-- Finalizar muestra un resumen y bloquea modificaciones accidentales; se puede reabrir de forma explícita.
+- Las marcas son opcionales y cada una admite «Lo desconozco».
+- No se completa la configuración sin días, altura, peso, experiencia y un objetivo.
+- El nivel queda guardado y puede recalcularse al cambiar datos.
+- Una marca ausente nunca se sustituye por una cifra ficticia.
 
-### HU-02 — Copiar una rutina pública
+### HU-02 — Crear una rutina por días
 
-Como deportista, quiero copiar una rutina pública para adaptarla sin modificar la versión del autor.
-
-**Aceptación:**
-
-- La copia pertenece al usuario y comienza como privada.
-- Conserva referencia al autor, rutina y versión originales.
-- Cambiar la copia no cambia el original y viceversa.
-
-### HU-03 — Crear y activar una rutina
-
-Como deportista, quiero crear una rutina por semanas y días para seguir una planificación clara durante mi ciclo.
+Como atleta, quiero configurar cada día por separado para que la rutina represente mi semana real.
 
 **Aceptación:**
 
-- La rutina admite nombre, objetivo, nivel, duración y frecuencia.
-- Cada día permite ordenar ejercicios y definir series, repeticiones e intensidad.
-- Activarla crea una asignación fechada sin modificar la plantilla.
-- Los errores de validación identifican el campo y conservan el resto del borrador.
+- Cada día tiene nombre y lista propia.
+- Añadir o eliminar días no copia automáticamente el contenido de otro.
+- No se guarda una rutina con un día vacío.
+- Manual y asistido producen el mismo formato editable.
 
-### HU-04 — Consultar progreso
+### HU-03 — Reutilizar una rutina pública
 
-Como deportista, quiero ver la evolución de mis movimientos principales para valorar el ciclo.
+Como atleta, quiero añadir y activar una rutina de otra persona manteniendo su procedencia.
 
 **Aceptación:**
 
-- Puede filtrar por movimiento y periodo.
-- El gráfico diferencia marca real de estimaciones, si estas se incorporan.
-- Los cálculos se pueden reproducir a partir de las sesiones registradas.
+- Se crea una copia bajo mi propiedad.
+- La copia enlaza la versión y el autor de origen.
+- Solo una rutina queda activa.
+- Likes y preguntas siguen asociados al original.
+
+### HU-04 — Controlar mi perfil público
+
+Como atleta, quiero decidir qué secciones se muestran para compartir solo lo que considero adecuado.
+
+**Aceptación:**
+
+- Un perfil privado no se expone.
+- En uno público, entrenamiento, progreso y rutinas se controlan por separado.
+- Las tablas base de perfiles siguen siendo de lectura exclusiva del propietario.
+- La vista pública se obtiene mediante una función limitada.
+
+### HU-05 — Recibir actividad y progresar
+
+Como autor, quiero conocer likes y preguntas y ver logros de uso.
+
+**Aceptación:**
+
+- Cada interacción genera como máximo una notificación y un evento de XP.
+- El propio usuario no recibe recompensa por interactuar con su contenido.
+- Marcar como leído solo afecta a las notificaciones propias.
+- Nivel deportivo y nivel de cuenta se presentan como conceptos distintos.
 
 ## 4. Requisitos no funcionales
 
-| ID | Área | Requisito medible |
+| ID | Área | Requisito |
 | --- | --- | --- |
-| RNF-001 | Usabilidad | Completar una serie requiere como máximo dos acciones tras introducir el valor cambiado. |
-| RNF-002 | Responsive | Flujos principales utilizables desde 360 px de ancho y con objetivo táctil suficiente. |
-| RNF-003 | Accesibilidad | Objetivo WCAG 2.2 AA; navegación por teclado y etiquetas accesibles en formularios. |
-| RNF-004 | Rendimiento | p75 LCP < 2,5 s e INP < 200 ms en páginas principales bajo condiciones de prueba documentadas. |
-| RNF-005 | Seguridad | Autorización en servidor/base de datos; ningún usuario accede a filas privadas ajenas. |
-| RNF-006 | Privacidad | Minimización, consentimiento explícito para publicar, exportación y borrado. |
-| RNF-007 | Disponibilidad | Una interrupción de una función secundaria no bloquea el registro ni la consulta de entrenamientos ya guardados. |
-| RNF-008 | Trazabilidad | Cada requisito prioritario se vincula con pruebas y evidencia en la memoria. |
-| RNF-009 | Observabilidad | Los errores de aplicación incluyen identificador de correlación sin registrar secretos ni contenido privado innecesario. |
-| RNF-010 | Mantenibilidad | Dominio, acceso a datos e interfaz mantienen límites explícitos. |
+| RNF-001 | Responsive | Flujos principales utilizables desde 360 px y en escritorio. |
+| RNF-002 | Accesibilidad | Objetivo WCAG 2.2 AA, navegación por teclado, foco visible y nombres accesibles. |
+| RNF-003 | Rendimiento | p75 LCP < 2,5 s e INP < 200 ms en el entorno de prueba documentado. |
+| RNF-004 | Seguridad | RLS activa en tablas privadas; RPC autenticadas y de privilegio mínimo. |
+| RNF-005 | Privacidad | Perfil privado por defecto y exposición granular explícita. |
+| RNF-006 | Integridad | Claves foráneas, checks, unicidad e idempotencia de eventos. |
+| RNF-007 | Mantenibilidad | Tipos, repositorio de datos, reglas de dominio y componentes separados. |
+| RNF-008 | Portabilidad | Esquema SQL versionado y frontend desacoplado de una única plataforma de hosting. |
+| RNF-009 | Internacionalización | La navegación y los flujos funcionales están disponibles en español e inglés. |
+| RNF-010 | Seguridad deportiva | Toda carga sugerida es orientativa, explicable y editable. |
+| RNF-011 | Disponibilidad | Un fallo de notificaciones o logros no impide entrenar o consultar datos. |
+| RNF-012 | Reproducibilidad | Instalación, migraciones, variables y build están documentados. |
 
-## 5. Reglas de negocio iniciales
+## 5. Reglas de negocio
 
-- Una rutina publicada es una versión inmutable; editarla genera borrador o nueva versión.
-- Una sesión pertenece a un único usuario y opcionalmente a una asignación de rutina.
-- Un intento fallido aporta información de entrenamiento, pero no puede crear una marca personal.
-- Una marca derivada automáticamente queda como candidata hasta ser confirmada.
-- Los porcentajes se calculan contra una marca de referencia explícita y fechada.
-- La carga nunca puede ser negativa; los incrementos deben respetar una granularidad configurable, inicialmente 0,5 kg.
-- Un borrador inválido no puede activarse ni publicarse.
+- Una versión publicada no se modifica en el lugar.
+- Una copia es independiente y conserva `source_version_id`.
+- Solo existe una asignación activa por usuario.
+- El foco se normaliza a `mobility`, `strength`, `technique` o `competition`.
+- El nivel deportivo solo puede ser `starter`, `beginner`, `intermediate` o `advanced`.
+- La experiencia técnica limita el nivel máximo aunque exista fuerza general.
+- Los porcentajes se calculan contra una marca fechada del levantamiento correcto.
+- Sin referencia, la carga sugerida es 0 kg y se muestra una advertencia.
+- El redondeo asistido utiliza incrementos de 2,5 kg.
+- Un intento fallido no aumenta una marca.
+- XP y logros no modifican el nivel deportivo ni prescriben carga.
+- Las recompensas usan claves únicas para evitar duplicados.
+- El avatar base64 debe proceder de una imagen válida, comprimida y limitada en tamaño.
+- Las rutas sociales no permiten like propio ni pregunta propia al autor.
 
-## 6. Matriz de trazabilidad mínima
+## 6. Datos pendientes de evaluación
 
-La matriz se completará durante el desarrollo.
-
-| Requisito | Caso de uso | Prueba prevista | Evidencia |
-| --- | --- | --- | --- |
-| RF-031 | Registrar serie | E2E sesión móvil | Pendiente |
-| RF-042–044 | Copiar rutina | Integración de versionado | Pendiente |
-| RNF-005 | Aislamiento de datos | Pruebas RLS allow/deny | Pendiente |
-| RNF-004 | Rendimiento móvil | Lighthouse + Web Vitals | Pendiente |
+La implementación satisface el contrato funcional descrito, pero los umbrales de usabilidad, accesibilidad y rendimiento deben demostrarse con el protocolo de [evaluación](04-plan-de-evaluacion.md). No se presentan como resultados hasta ejecutar y registrar las pruebas.

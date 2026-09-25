@@ -1,6 +1,6 @@
 # ADR-0002: PostgreSQL, Supabase Auth y Row Level Security
 
-- Estado: Propuesto
+- Estado: Aceptado
 - Fecha: 2026-09-09
 
 ## Contexto

@@ -33,10 +33,10 @@ export function AchievementConsole({ onError }: { onError: (message: string) => 
     void workoutRepository.loadGamification().then((loaded) => {
       if (!cancelled) setProgress(loaded);
     }).catch((error) => {
-      if (!cancelled) onError(error instanceof Error ? error.message : tr('No se pudieron cargar los logros.', 'Achievements could not be loaded.'));
+      if (!cancelled) onError(error instanceof Error ? error.message : language === 'es' ? 'No se pudieron cargar los logros.' : 'Achievements could not be loaded.');
     });
     return () => { cancelled = true; };
-  }, [onError, tr]);
+  }, [language, onError]);
 
   if (!progress) return <div className="achievement-loading"><Trophy aria-hidden="true" /><p>{tr('Cargando tu progreso…', 'Loading your progress…')}</p></div>;
 

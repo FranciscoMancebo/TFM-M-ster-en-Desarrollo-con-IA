@@ -2,111 +2,196 @@
 
 ## 1. Lenguaje ubicuo
 
-- **Ejercicio:** movimiento del catálogo, por ejemplo arrancada, dos tiempos, cargada, tirón o sentadilla.
-- **Variante:** modificación de un movimiento base, por ejemplo desde bloques, colgante o power.
-- **Rutina:** plantilla reutilizable de programación.
-- **Versión de rutina:** instantánea inmutable que puede publicarse o copiarse.
-- **Bloque/ciclo:** periodo de varias semanas con un objetivo.
-- **Día programado:** conjunto ordenado de prescripciones dentro de una semana.
-- **Prescripción:** ejercicio y objetivo de series, repeticiones, intensidad, RPE y descanso.
-- **Asignación:** versión de rutina activada por un usuario y fechada.
-- **Sesión:** ejecución real de un día, planificada o libre.
-- **Serie/intento:** resultado real con carga, repeticiones, RPE y validez.
-- **Marca:** mejor resultado confirmado para un ejercicio y criterio.
-- **Copia (fork):** rutina nueva derivada de una versión pública, con procedencia conservada.
+- **Nivel deportivo:** iniciación, principiante, intermedio o avanzado; orienta complejidad y carga.
+- **Nivel de cuenta:** rango lúdico derivado de XP.
+- **Marca de referencia:** carga fechada para uno de los cuatro levantamientos principales.
+- **Ejercicio:** movimiento del catálogo con categoría, explicación y claves.
+- **Rutina:** identidad lógica perteneciente a un usuario.
+- **Versión:** fotografía inmutable publicable de una rutina.
+- **Día:** sesión tipo independiente dentro de la versión.
+- **Prescripción:** ejercicio, series, repeticiones, intensidad, descanso y notas.
+- **Asignación:** versión activada por un atleta.
+- **Sesión:** ejecución real de un día.
+- **Serie:** resultado real, completado, fallido o pendiente.
+- **Importación:** copia propia vinculada a la versión pública original.
+- **Interacción:** like, pregunta o respuesta sobre una versión pública.
+- **Notificación:** aviso persistente para el propietario.
+- **Evento de experiencia:** concesión idempotente de XP.
+- **Logro:** umbral definido por una métrica de actividad.
 
-## 2. Relaciones principales
+## 2. Relaciones
 
 ```mermaid
 erDiagram
-    USER ||--|| PROFILE : tiene
-    USER ||--o{ ROUTINE : crea
+    AUTH_USER ||--|| PROFILE : posee
+    AUTH_USER ||--o{ LIFT_RECORD : registra
+    AUTH_USER ||--o{ ROUTINE : crea
     ROUTINE ||--o{ ROUTINE_VERSION : versiona
     ROUTINE_VERSION ||--o{ ROUTINE_DAY : contiene
     ROUTINE_DAY ||--o{ PRESCRIPTION : ordena
-    EXERCISE ||--o{ PRESCRIPTION : prescribe
-    ROUTINE_VERSION ||--o{ ROUTINE_ASSIGNMENT : se_activa_como
-    USER ||--o{ ROUTINE_ASSIGNMENT : activa
-    USER ||--o{ WORKOUT_SESSION : registra
-    ROUTINE_ASSIGNMENT o|--o{ WORKOUT_SESSION : planifica
+    EXERCISE ||--o{ PRESCRIPTION : utiliza
+    AUTH_USER ||--o{ ROUTINE_ASSIGNMENT : activa
+    ROUTINE_VERSION ||--o{ ROUTINE_ASSIGNMENT : asignada
+    AUTH_USER ||--o{ WORKOUT_SESSION : ejecuta
     WORKOUT_SESSION ||--o{ PERFORMED_SET : contiene
-    EXERCISE ||--o{ PERFORMED_SET : ejecuta
-    USER ||--o{ PERSONAL_RECORD : confirma
-    EXERCISE ||--o{ PERSONAL_RECORD : corresponde
-    ROUTINE_VERSION o|--o{ ROUTINE : origen_de_copia
+    ROUTINE_VERSION ||--o{ ROUTINE_LIKE : recibe
+    ROUTINE_VERSION ||--o{ ROUTINE_QUESTION : recibe
+    AUTH_USER ||--o{ NOTIFICATION : recibe
+    AUTH_USER ||--|| ATHLETE_PROGRESS : acumula
+    AUTH_USER ||--o{ EXPERIENCE_EVENT : obtiene
+    AUTH_USER ||--o{ USER_ACHIEVEMENT : desbloquea
+    ACHIEVEMENT_DEFINITION ||--o{ USER_ACHIEVEMENT : define
+    ROUTINE_VERSION o|--o{ ROUTINE : origen
 ```
 
-## 3. Entidades y campos esenciales
+## 3. Entidades
 
 ### `profiles`
 
-- `user_id`, `display_name`, `bio`, `level`, `goals`, `training_days_per_week`
-- `profile_visibility`, `created_at`, `updated_at`
+Identidad deportiva y controles de privacidad:
 
-No se almacenarán datos de salud que no sean necesarios para el caso de uso.
+- nombre, biografía y avatar base64;
+- nivel deportivo, experiencia, altura, peso y días;
+- objetivos y configuración completada;
+- idioma preferido;
+- visibilidad general;
+- permisos para datos, progreso y rutinas.
+
+La lectura directa pertenece solo al propietario. La vista pública es una proyección RPC.
+
+### `lift_records`
+
+Contiene usuario, levantamiento, carga, fecha y origen. Los levantamientos válidos son:
+
+- `back_squat`;
+- `snatch`;
+- `front_squat`;
+- `clean_and_jerk`.
+
+La combinación usuario, levantamiento y fecha es única.
 
 ### `exercises`
 
-- `id`, `slug`, `name`, `base_movement`, `category`
-- `equipment`, `unilateral`, `active`, `metadata`
+Catálogo administrado con slug, nombre, material, unilateralidad y metadatos JSON:
 
-El catálogo es administrado. Los ejercicios personalizados quedan para una iteración posterior porque dificultan compartir y validar rutinas.
+- sección;
+- resumen;
+- focos;
+- claves técnicas;
+- URL de vídeo opcional.
 
-### `routines` y `routine_versions`
+Los metadatos aportan contenido editorial; la identidad y relaciones permanecen normalizadas.
 
-- `routines`: identidad lógica, propietario, estado, procedencia opcional.
-- `routine_versions`: número, título, descripción, nivel, objetivo, semanas, frecuencia, visibilidad, fecha de publicación.
+### `routines`
 
-Una versión publicada es inmutable. Esta separación evita que las copias cambien silenciosamente.
+Contiene propietario, estado y procedencia opcional. Una copia externa referencia `source_version_id`. La unicidad evita importar dos veces la misma versión para el mismo propietario.
+
+### `routine_versions`
+
+Contiene título, descripción, nivel, enfoque, semanas, días por semana, visibilidad y fecha de publicación. Los niveles y focos están restringidos por checks. Una versión publicada es inmutable.
 
 ### `routine_days` y `prescriptions`
 
-- Día: versión, número de semana, índice del día, nombre y notas.
-- Prescripción: ejercicio, orden, series, repeticiones, tipo de intensidad, valor, RPE objetivo, descanso y notas.
+Cada día tiene índice y nombre propios. Las prescripciones ordenan ejercicios y definen series, repeticiones, intensidad absoluta o porcentual, valor, carga sugerida, descanso y notas.
 
-Si se necesitan esquemas complejos —por ejemplo, series escalonadas— se añadirá una tabla de bloques de series; no se guardará lógica opaca en texto libre.
+### `routine_assignments`
+
+Enlaza usuario y versión activa. Un índice parcial garantiza una sola asignación `active` por usuario.
 
 ### `workout_sessions` y `performed_sets`
 
-- Sesión: usuario, asignación/día opcional, inicio, fin, estado y notas.
-- Serie: ejercicio, prescripción opcional, orden, carga, repeticiones, RPE, resultado y sello temporal.
+La sesión almacena usuario, asignación/día, inicio, fin, estado y notas. Las series guardan ejercicio, orden, carga, repeticiones, RPE opcional, resultado y tiempo.
 
-`result` distingue al menos `success`, `miss` y `skipped`; una omisión planificada no debe parecer un intento fallido.
+### `routine_likes` y `routine_questions`
 
-### `personal_records`
+Un like es único por usuario y versión. La pregunta pertenece a su autor y admite una respuesta del propietario de la rutina.
 
-- Usuario, ejercicio, tipo de marca, carga, repeticiones, fecha, serie de origen, estado de confirmación.
+### `notifications`
 
-La serie real es la fuente de verdad cuando existe. Una marca importada manualmente conserva esa procedencia.
+Incluye destinatario, actor, tipo, versión, pregunta opcional, fecha de lectura y clave de evento única. Tipos actuales: `routine_like` y `routine_question`.
 
-## 4. Invariantes
+### Gamificación
 
-- Toda entidad privada tiene propietario comprobable.
-- Ninguna versión publicada se modifica en el lugar.
-- Toda prescripción referencia un ejercicio activo del catálogo.
-- Una serie completada exige repeticiones y una carga no negativa.
-- Un intento fallido no actualiza marcas.
-- Una copia conserva la versión exacta de procedencia.
-- Fechas se almacenan en UTC y se presentan en la zona del usuario.
+- `achievement_definitions`: catálogo bilingüe, métrica, umbral y recompensa.
+- `experience_events`: libro mayor inmutable e idempotente de XP.
+- `athlete_progress`: total y nivel materializados.
+- `user_achievements`: logros desbloqueados y fecha.
 
-## 5. Política de acceso inicial
+## 4. Cálculos
 
-| Recurso | Visitante | Usuario | Propietario | Admin |
-| --- | --- | --- | --- | --- |
-| Perfil privado | No | No | Lectura/escritura | Acceso justificado |
-| Perfil público | Lectura | Lectura | Lectura/escritura | Moderación |
-| Rutina privada | No | No | Lectura/escritura | Acceso justificado |
-| Versión publicada | Lectura | Lectura/copia | Publicar/retirar | Moderación |
-| Sesiones y series | No | No | Lectura/escritura | Acceso justificado |
+### Nivel deportivo
 
-Cada política tendrá pruebas positivas y negativas. La interfaz nunca se considera una barrera de autorización.
+Se calcula con experiencia y fuerza relativa respecto al peso corporal. Las marcas disponibles aportan evidencia, pero las ausentes no se estiman. La experiencia técnica limita el nivel máximo para evitar que una sentadilla alta clasifique como avanzado a quien no domina los movimientos olímpicos.
 
-## 6. Decisiones de modelado por validar
+### Carga sugerida
 
-- Si un complejo de halterofilia se representa como ejercicio compuesto o como agrupación de ejercicios.
-- Si el RPE se registra por serie o solo al final del ejercicio.
-- Cómo expresar series del tipo `3x(1+1)` sin perder búsqueda ni validación.
-- Qué marcas son relevantes además del mejor intento de una repetición.
-- Cómo redondear porcentajes según los discos disponibles.
+```text
+carga = redondear_a_2_5(marca_compatible × porcentaje_ajustado_por_nivel)
+```
 
-Estas preguntas deben aparecer en las entrevistas con deportistas y entrenador.
+Si no existe marca compatible:
+
+```text
+carga = 0 kg
+nota = empezar con barra vacía o carga técnica cómoda
+```
+
+### Volumen
+
+```text
+volumen = Σ(carga × repeticiones) de series completadas
+```
+
+Las series fallidas no suman volumen completado.
+
+### Nivel de cuenta
+
+```text
+nivel = floor(sqrt(XP total / 250)) + 1
+umbral inicial del nivel n = (n - 1)² × 250
+siguiente umbral = n² × 250
+```
+
+## 5. Eventos de XP
+
+| Evento | XP base |
+| --- | ---: |
+| Sesión completada | 100 |
+| Marca registrada | 25 |
+| Rutina publicada | 75 |
+| Like externo recibido | 10 |
+| Pregunta externa recibida | 15 |
+| Logro desbloqueado | Recompensa de su definición |
+
+Cada evento usa una clave única, por ejemplo `workout:<id>`, para que repetir una operación no duplique XP.
+
+## 6. Invariantes
+
+- Toda fila privada tiene propietario o una relación verificable con él.
+- Un perfil privado no se consulta mediante la proyección pública.
+- Las opciones granulares no anulan la visibilidad general privada.
+- Una versión publicada no se actualiza ni elimina como borrador.
+- Una copia conserva la versión exacta de origen.
+- Solo hay una rutina activa por usuario.
+- Una carga nunca es negativa.
+- Una marca desconocida no se convierte en 60 kg ni en cualquier otro valor.
+- El nivel de cuenta no cambia el nivel deportivo.
+- El usuario no recibe notificación ni XP por sus propias interacciones.
+- Las fechas se almacenan con zona cuando representan eventos y como fecha civil en marcas.
+
+## 7. Política de acceso
+
+| Recurso | Otros autenticados | Propietario |
+| --- | --- | --- |
+| Perfil base | Sin acceso directo | Lectura/escritura |
+| Proyección pública | Según visibilidad | Completa |
+| Rutina privada | Sin acceso | Lectura/escritura |
+| Versión pública | Lectura social | Publicación y gestión |
+| Sesiones y series | Sin acceso | Lectura/escritura |
+| Marcas | Solo por proyección autorizada | Lectura/escritura |
+| Notificaciones | Sin acceso | Lectura y marcado |
+| XP y logros | Resumen público si perfil público | Detalle completo |
+
+## 8. Catálogo de logros inicial
+
+Incluye primera y quinta sesión, veinte sesiones, primera y décima marca, cuatro levantamientos cubiertos, primera y tercera rutina pública, primer y décimo like y primera pregunta recibida. El catálogo es extensible sin modificar la interfaz.
