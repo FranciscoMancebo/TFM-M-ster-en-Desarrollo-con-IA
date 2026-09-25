@@ -53,6 +53,6 @@ npx.cmd supabase db lint --linked
 
 ## Datos ficticios
 
-La migración `202609240012` crea identidades no interactivas, rutinas públicas, likes y preguntas. Sirven para la demostración y no representan usuarios reales.
+Las migraciones `202609240012` y `202609250001` crean diez identidades no interactivas, veinte rutinas públicas, progresiones fechadas, likes y preguntas. Sirven para la demostración y no representan usuarios reales.
 
 La guía completa está en [docs/08-guia-tecnica-y-operacion.md](../docs/08-guia-tecnica-y-operacion.md).

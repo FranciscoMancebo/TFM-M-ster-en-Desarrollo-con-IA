@@ -81,7 +81,7 @@ La identidad efectiva procede de `auth.uid()`. Un identificador enviado desde el
 - **RF-063:** marcar una o todas las notificaciones como leídas.
 - **RF-064:** otorgar XP idempotente por sesión, marca, publicación e interacción recibida.
 - **RF-065:** calcular el nivel de cuenta a partir del XP acumulado.
-- **RF-066:** desbloquear logros por umbrales de actividad.
+- **RF-066:** desbloquear logros por umbrales de actividad, volumen acumulado, series completadas y mejoras de marca personal.
 - **RF-067:** mostrar logros desbloqueados, progreso de los pendientes e historial reciente de XP.
 - **RF-068:** mostrar nivel, XP y número de logros en perfiles públicos.
 

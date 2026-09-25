@@ -473,7 +473,7 @@ export function RoutineHub({
         <DialogContent className="routine-editor-dialog">
           <DialogHeader><DialogTitle>{draft.routineId ? tr('Editar rutina', 'Edit routine') : tr('Crear rutina', 'Create routine')}</DialogTitle><DialogDescription>{creationMode === null ? tr('Elige cómo quieres construir tu nueva rutina.', 'Choose how you want to build your new routine.') : tr('Configura la sesión principal, el nivel y quién puede verla.', 'Configure the main session, level and who can see it.')}</DialogDescription></DialogHeader>
           {!draft.routineId && creationMode === null ? (
-            <div className="routine-mode-picker">
+            <div className="routine-mode-picker routine-editor-scroll">
               <button type="button" onClick={chooseManualMode}>
                 <span className="routine-mode-icon"><SlidersHorizontal aria-hidden="true" /></span>
                 <strong>{tr('Crear manualmente', 'Create manually')}</strong>

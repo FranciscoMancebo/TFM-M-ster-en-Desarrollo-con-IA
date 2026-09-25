@@ -273,7 +273,7 @@ button,input{font:inherit} button{cursor:pointer} button:disabled{cursor:default
 .routine-conversation blockquote p { margin: .3rem 0 0; }
 .answer-form { display: flex !important; grid-template-columns: none !important; align-items: center !important; margin-top: .6rem; }
 
-.routine-editor-dialog { width: min(920px, calc(100vw - 2rem)) !important; max-width: 920px !important; max-height: 90vh; padding: 1.2rem !important; }
+.routine-editor-dialog { width: min(920px, calc(100vw - 2rem)) !important; max-width: 920px !important; max-height: min(90dvh, 900px); grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; padding: 1.2rem !important; }
 .routine-mode-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; padding: 1rem 0 .5rem; }
 .routine-mode-picker > button { position: relative; min-height: 260px; padding: 1.5rem; border: 1px solid #d3d5ca; border-radius: 16px; background: #f8f7f2; color: var(--foreground); text-align: left; transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease; }
 .routine-mode-picker > button:hover { border-color: #899225; transform: translateY(-2px); box-shadow: 0 14px 30px rgba(24, 29, 22, .08); }
@@ -287,7 +287,8 @@ button,input{font:inherit} button{cursor:pointer} button:disabled{cursor:default
 .routine-mode-picker small { display: inline-flex; align-items: center; gap: .35rem; color: #65701c; font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .routine-mode-picker .is-recommended small { color: var(--signal); }
 .routine-mode-picker small svg { width: .85rem; }
-.routine-editor-scroll { overflow-y: auto; padding: .2rem .25rem .5rem 0; }
+.routine-editor-scroll { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; -webkit-overflow-scrolling: touch; padding: .2rem .5rem .5rem 0; }
+.routine-mode-picker.routine-editor-scroll { padding-top: 1rem; }
 .routine-assistant-panel { margin: .35rem 0 1.2rem; overflow: hidden; border: 1px solid #cdd29e; border-radius: 13px; background: #f5f7db; }
 .routine-assistant-heading { display: grid; grid-template-columns: auto 1fr; gap: .8rem; padding: 1rem; }
 .routine-assistant-heading > span { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 9px; background: var(--forest); color: var(--signal); }
@@ -352,6 +353,7 @@ button,input{font:inherit} button{cursor:pointer} button:disabled{cursor:default
   .community-routine-card > header { grid-template-columns: auto 1fr; }
   .community-focus { grid-column: 2; justify-self: start; }
   .routine-editor-fields { grid-template-columns: 1fr; }
+  .routine-editor-dialog { width: calc(100vw - 1rem) !important; max-height: calc(100dvh - 1rem); padding: 1rem !important; }
   .routine-mode-picker { grid-template-columns: 1fr; }
   .routine-mode-picker > button { min-height: 210px; }
   .routine-mode-icon { margin-bottom: 1.2rem; }

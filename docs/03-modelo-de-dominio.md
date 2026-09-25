@@ -192,6 +192,15 @@ Cada evento usa una clave única, por ejemplo `workout:<id>`, para que repetir u
 | Notificaciones | Sin acceso | Lectura y marcado |
 | XP y logros | Resumen público si perfil público | Detalle completo |
 
-## 8. Catálogo de logros inicial
+## 8. Catálogo de logros
 
-Incluye primera y quinta sesión, veinte sesiones, primera y décima marca, cuatro levantamientos cubiertos, primera y tercera rutina pública, primer y décimo like y primera pregunta recibida. El catálogo es extensible sin modificar la interfaz.
+El catálogo combina hitos de adherencia, registro, progreso y comunidad:
+
+- sesiones completadas: 1, 5, 20, 50 y 100;
+- volumen válido acumulado: 1.000, 10.000, 50.000, 100.000 y 250.000 kg;
+- series completadas con éxito: 50, 250 y 1.000;
+- marcas fechadas: 1, 10, 25 y 50, además de cubrir los cuatro levantamientos;
+- mejoras de marca personal: 1, 10 y 25;
+- rutinas públicas, likes y preguntas recibidas mediante umbrales crecientes.
+
+El progreso se calcula desde los datos reales. Para el volumen solo cuentan las series con resultado satisfactorio pertenecientes a sesiones finalizadas; una serie fallida u omitida no contribuye al hito. El catálogo permanece extensible sin modificar la interfaz.

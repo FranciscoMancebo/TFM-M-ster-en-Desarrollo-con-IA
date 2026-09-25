@@ -92,10 +92,11 @@ Las migraciones se ejecutan en orden por nombre. No se modifica una migración y
 | `202609240013` | Perfiles públicos y privacidad granular |
 | `202609240014` | Lectura directa de perfiles solo para propietario |
 | `202609240015` | Notificaciones, XP, niveles y logros |
+| `202609250001` | Hitos de volumen y ampliación de la comunidad ficticia |
 
 ## 6. Datos ficticios
 
-La migración 012 crea cuatro identidades de demostración sin acceso interactivo, ocho rutinas públicas y actividad social. Las migraciones posteriores completan sus perfiles, marcas, XP y notificaciones.
+La migración 012 crea la comunidad ficticia inicial. La migración `202609250001` la amplía hasta diez identidades sin acceso interactivo y veinte rutinas públicas, añade progresiones fechadas para los cuatro levantamientos y distribuye likes y preguntas entre distintos niveles y enfoques. Las migraciones de gamificación calculan XP y logros sobre esos datos igual que sobre los de un usuario real.
 
 Estos registros permiten demostrar comunidad y perfiles sin utilizar datos reales. No deben confundirse con participantes de evaluación.
 
