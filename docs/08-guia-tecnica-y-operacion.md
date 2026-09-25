@@ -105,18 +105,25 @@ Estos registros permiten demostrar comunidad y perfiles sin utilizar datos reale
 Desde `web/`:
 
 ```powershell
-npx.cmd tsc --noEmit
-npm.cmd run lint
-npm.cmd run build
+npm.cmd run test
+npm.cmd run typecheck
+npm.cmd run check
+npx.cmd playwright install chromium
+npm.cmd run test:e2e
 ```
+
+`check` ejecuta tipos, lint, pruebas unitarias y build. El lint también puede ejecutarse de forma independiente con `npm.cmd run lint`.
 
 Para base de datos:
 
 ```powershell
 npx.cmd supabase db lint --linked
+npm.cmd run test:db
 ```
 
-La suite RLS se encuentra en `supabase/tests`. Debe ejecutarse contra un entorno de prueba controlado antes de la entrega.
+La suite RLS se encuentra en `supabase/tests`, se ejecuta dentro de transacciones con `ROLLBACK` y requiere Docker Desktop para la imagen `pg_prove`. Debe utilizarse contra un entorno de prueba controlado antes de la entrega.
+
+GitHub Actions ejecuta tipos, unitarias, build y pruebas de navegador mediante `.github/workflows/quality.yml`. La suite remota de base de datos permanece separada porque requiere credenciales y un entorno Supabase controlado.
 
 ## 8. Despliegue
 

@@ -84,6 +84,7 @@ La identidad efectiva procede de `auth.uid()`. Un identificador enviado desde el
 - **RF-066:** desbloquear logros por umbrales de actividad, volumen acumulado, series completadas y mejoras de marca personal.
 - **RF-067:** mostrar logros desbloqueados, progreso de los pendientes e historial reciente de XP.
 - **RF-068:** mostrar nivel, XP y número de logros en perfiles públicos.
+- **RF-069:** mostrar una celebración animada y no repetitiva al desbloquear un logro o subir de nivel de cuenta.
 
 ### Entrenador contextual
 

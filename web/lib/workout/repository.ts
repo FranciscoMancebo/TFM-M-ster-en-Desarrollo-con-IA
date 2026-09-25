@@ -35,6 +35,14 @@ function requireData<T>(data: T | null, error: DatabaseError): T {
   return data;
 }
 
+function textValue(value: unknown, fallback = '') {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function optionalTextValue(value: unknown) {
+  return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
 function resultFromStatus(status: TrainingSet['status']) {
   if (status === 'completed') return 'success';
   if (status === 'failed') return 'miss';
@@ -838,7 +846,7 @@ export const workoutRepository = {
       routineId: String(routine.routine_id),
       versionId: String(routine.routine_version_id),
       title: String(routine.title),
-      description: String(routine.description ?? ''),
+      description: textValue(routine.description),
       level: routine.routine_level as CommunityRoutine['level'],
       focus: routine.focus as CommunityRoutine['focus'],
       weeks: Number(routine.weeks),
@@ -846,7 +854,7 @@ export const workoutRepository = {
       authorId: String(routine.author_id),
       authorName: String(routine.author_name),
       authorLevel: routine.author_level as CommunityRoutine['authorLevel'],
-      authorAvatar: routine.author_avatar ? String(routine.author_avatar) : null,
+      authorAvatar: optionalTextValue(routine.author_avatar),
       likeCount: Number(routine.like_count),
       likedByMe: Boolean(routine.liked_by_me),
       questionCount: Number(routine.question_count),
@@ -875,9 +883,9 @@ export const workoutRepository = {
       authorId: String(question.author_id),
       authorName: String(question.author_name),
       body: String(question.body),
-      answer: question.answer ? String(question.answer) : null,
+      answer: optionalTextValue(question.answer),
       createdAt: String(question.created_at),
-      answeredAt: question.answered_at ? String(question.answered_at) : null,
+      answeredAt: optionalTextValue(question.answered_at),
     }));
   },
 

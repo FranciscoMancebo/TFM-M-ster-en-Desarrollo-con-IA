@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { BarChart3, BookOpen, CalendarDays, Flame, Heart, Library, Medal, MessageCircle, Play, Star, TrendingUp, Trophy } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { GAMIFICATION_UPDATED_EVENT } from '@/components/gamification-celebration';
 import { useI18n } from '@/lib/i18n';
 import { workoutRepository } from '@/lib/workout/repository';
 import type { GamificationProgress } from '@/lib/workout/types';
@@ -37,6 +38,14 @@ export function AchievementConsole({ onError }: { onError: (message: string) => 
     });
     return () => { cancelled = true; };
   }, [language, onError]);
+
+  useEffect(() => {
+    const updateProgress = (event: Event) => {
+      setProgress((event as CustomEvent<GamificationProgress>).detail);
+    };
+    window.addEventListener(GAMIFICATION_UPDATED_EVENT, updateProgress);
+    return () => window.removeEventListener(GAMIFICATION_UPDATED_EVENT, updateProgress);
+  }, []);
 
   if (!progress) return <div className="achievement-loading"><Trophy aria-hidden="true" /><p>{tr('Cargando tu progreso…', 'Loading your progress…')}</p></div>;
 

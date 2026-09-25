@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import NextImage from 'next/image';
 import { Bot, CheckCircle2, Download, Dumbbell, Globe2, Heart, Lock, MessageCircle, Pencil, Play, Plus, Send, SlidersHorizontal, Sparkles, Trash2, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PublicAthleteProfileDialog } from '@/components/public-athlete-profile';
@@ -128,14 +129,15 @@ export function RoutineHub({
     }
   }
 
-  useEffect(() => {
-    if (tab === 'community' && community.length === 0) void refreshCommunity();
-  }, [tab]);
-
   const visibleCommunity = useMemo(() => community.filter((routine) => (
     (levelFilter === 'all' || routine.authorLevel === levelFilter)
     && (focusFilter === 'all' || routine.focus === focusFilter)
   )), [community, focusFilter, levelFilter]);
+
+  function openCommunity() {
+    setTab('community');
+    if (community.length === 0) void refreshCommunity();
+  }
 
   function openCreate() {
     setDraft(emptyDraft(profile, exercises, language));
@@ -425,7 +427,7 @@ export function RoutineHub({
 
       <div className="routine-hub-tabs" role="tablist" aria-label={tr('Secciones de rutinas', 'Routine sections')}>
         <button type="button" role="tab" aria-selected={tab === 'mine'} className={tab === 'mine' ? 'is-active' : ''} onClick={() => setTab('mine')}>{tr('Mis rutinas', 'My routines')} <span>{routines.length}</span></button>
-        <button type="button" role="tab" aria-selected={tab === 'community'} className={tab === 'community' ? 'is-active' : ''} onClick={() => setTab('community')}>{tr('Comunidad', 'Community')} <Globe2 aria-hidden="true" /></button>
+        <button type="button" role="tab" aria-selected={tab === 'community'} className={tab === 'community' ? 'is-active' : ''} onClick={openCommunity}>{tr('Comunidad', 'Community')} <Globe2 aria-hidden="true" /></button>
       </div>
 
       {tab === 'mine' ? (
@@ -437,7 +439,7 @@ export function RoutineHub({
               <div className="routine-card-copy">
                 <div className="workout-labels"><span>{routine.visibility === 'public' ? <><Globe2 aria-hidden="true" />{tr('Pública', 'Public')}</> : <><Lock aria-hidden="true" />{tr('Privada', 'Private')}</>}</span>{routine.active && <span className="active-routine-label"><CheckCircle2 aria-hidden="true" />{tr('Activa', 'Active')}</span>}<span>{language === 'es' ? levelNames[routine.level][0] : levelNames[routine.level][1]}</span><span>{language === 'es' ? focusNames[routine.focus][0] : focusNames[routine.focus][1]}</span></div>
                 <h2>{translateKnownText(language, routine.title)}</h2><p>{translateKnownText(language, routine.description)}</p>
-                {routine.sourceVersionId && routine.sourceAuthorName && routine.sourceAuthorId && <button type="button" className="imported-routine-author" onClick={() => void openPublicProfile(routine.sourceAuthorId!)}><div className="community-author-avatar">{routine.sourceAuthorAvatar ? <img src={routine.sourceAuthorAvatar} alt="" /> : personInitials(routine.sourceAuthorName)}</div><div><span>{tr('Rutina de', 'Routine by')}</span><strong>{routine.sourceAuthorName}</strong>{routine.sourceAuthorLevel && <small>{language === 'es' ? levelNames[routine.sourceAuthorLevel][0] : levelNames[routine.sourceAuthorLevel][1]}</small>}</div></button>}
+                {routine.sourceVersionId && routine.sourceAuthorName && routine.sourceAuthorId && <button type="button" className="imported-routine-author" onClick={() => void openPublicProfile(routine.sourceAuthorId!)}><div className="community-author-avatar">{routine.sourceAuthorAvatar ? <NextImage src={routine.sourceAuthorAvatar} alt="" width={80} height={80} unoptimized /> : personInitials(routine.sourceAuthorName)}</div><div><span>{tr('Rutina de', 'Routine by')}</span><strong>{routine.sourceAuthorName}</strong>{routine.sourceAuthorLevel && <small>{language === 'es' ? levelNames[routine.sourceAuthorLevel][0] : levelNames[routine.sourceAuthorLevel][1]}</small>}</div></button>}
               </div>
               <dl><div><dt>{tr('Duración', 'Duration')}</dt><dd>{routine.weeks} {tr('semanas', 'weeks')}</dd></div><div><dt>{tr('Frecuencia', 'Frequency')}</dt><dd>{routine.daysPerWeek} {tr('días/semana', 'days/week')}</dd></div></dl>
               <div className="routine-card-actions">{routine.active ? <Button disabled><CheckCircle2 aria-hidden="true" />{tr('Rutina activa', 'Active routine')}</Button> : <Button disabled={routineActionId !== null} onClick={() => void activateRoutine(routine.id)}><Play aria-hidden="true" />{routineActionId === routine.id ? tr('Activando…', 'Activating…') : tr('Activar', 'Activate')}</Button>}<Button variant="outline" disabled={editingLoading} onClick={() => void openEdit(routine)}><Pencil aria-hidden="true" />{tr('Editar', 'Edit')}</Button><Button variant="ghost" className="danger-action" onClick={() => setDeleteTarget(routine)}><Trash2 aria-hidden="true" />{tr('Eliminar', 'Delete')}</Button></div>
@@ -458,7 +460,7 @@ export function RoutineHub({
               const expanded = questionsFor === routine.versionId;
               const importedCopy = routines.find((item) => item.sourceVersionId === routine.versionId);
               return <article className="community-routine-card" key={routine.versionId}>
-                <header><button type="button" className="community-author-button" onClick={() => void openPublicProfile(routine.authorId)}><div className="community-author-avatar">{routine.authorAvatar ? <img src={routine.authorAvatar} alt="" /> : personInitials(routine.authorName)}</div><div><strong>{routine.authorName}</strong><span>{tr('Nivel', 'Level')}: {language === 'es' ? levelNames[routine.authorLevel][0] : levelNames[routine.authorLevel][1]}</span></div></button><span className="community-focus">{language === 'es' ? focusNames[routine.focus][0] : focusNames[routine.focus][1]}</span></header>
+                <header><button type="button" className="community-author-button" onClick={() => void openPublicProfile(routine.authorId)}><div className="community-author-avatar">{routine.authorAvatar ? <NextImage src={routine.authorAvatar} alt="" width={80} height={80} unoptimized /> : personInitials(routine.authorName)}</div><div><strong>{routine.authorName}</strong><span>{tr('Nivel', 'Level')}: {language === 'es' ? levelNames[routine.authorLevel][0] : levelNames[routine.authorLevel][1]}</span></div></button><span className="community-focus">{language === 'es' ? focusNames[routine.focus][0] : focusNames[routine.focus][1]}</span></header>
                 <div className="community-routine-copy"><h2>{routine.title}</h2><p>{routine.description}</p><div><span>{routine.weeks} {tr('semanas', 'weeks')}</span><span>{routine.daysPerWeek} {tr('días/semana', 'days/week')}</span><span>{new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(new Date(routine.publishedAt))}</span></div></div>
                 <footer><button type="button" className="social-button" onClick={() => void loadCommunityPlan(routine.versionId)}><Dumbbell aria-hidden="true" />{planFor === routine.versionId ? tr('Ocultar plan', 'Hide plan') : tr('Ver plan', 'View plan')}</button><button type="button" className={routine.likedByMe ? 'social-button is-liked' : 'social-button'} disabled={socialSaving} aria-pressed={routine.likedByMe} onClick={() => void toggleLike(routine.versionId, routine.likedByMe)}><Heart aria-hidden="true" fill={routine.likedByMe ? 'currentColor' : 'none'} />{routine.likeCount}</button><button type="button" className="social-button" onClick={() => expanded ? setQuestionsFor(null) : void loadQuestions(routine.versionId)}><MessageCircle aria-hidden="true" />{routine.questionCount} {tr('preguntas', 'questions')}</button>{routine.authorId === userId ? <span className="own-community-routine"><CheckCircle2 aria-hidden="true" />{tr('Tu rutina', 'Your routine')}</span> : <Button size="sm" disabled={routineActionId !== null || importedCopy?.active} onClick={() => void importAndActivateRoutine(routine.versionId)}>{importedCopy?.active ? <CheckCircle2 aria-hidden="true" /> : <Download aria-hidden="true" />}{routineActionId === routine.versionId ? tr('Añadiendo…', 'Adding…') : importedCopy?.active ? tr('Activa', 'Active') : importedCopy ? tr('Activar copia', 'Activate copy') : tr('Añadir y activar', 'Add and activate')}</Button>}</footer>
                 {planFor === routine.versionId && <div className="community-plan"><p className="eyebrow">{tr('Plan semanal', 'Weekly plan')}</p>{(communityPlans[routine.versionId] ?? []).map((day, dayIndex) => <section className="community-plan-day" key={`${day.name}-${dayIndex}`}><h4>{day.name}</h4>{day.exercises.map((exercise, index) => <div key={`${exercise.exerciseId}-${index}`}><span>{(index + 1).toString().padStart(2, '0')}</span><strong>{translateKnownText(language, exercise.exerciseName)}</strong><small>{exercise.sets} × {exercise.repetitions} · {exercise.intensityValue} {exercise.intensityType === 'load' ? 'kg' : '%'}</small></div>)}</section>)}</div>}

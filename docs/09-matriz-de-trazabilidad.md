@@ -10,23 +10,23 @@
 
 | Requisitos | Implementación | Datos | Validación / estado |
 | --- | --- | --- | --- |
-| RF-001 | `app/page.tsx`, `lib/supabase/client.ts` | Auth | Implementada; E2E pendiente |
+| RF-001 | `app/page.tsx`, `lib/supabase/client.ts` | Auth | E2E básico de acceso superado; autenticación remota pendiente |
 | RF-002–010 | `InitialSetup`, vista Perfil, `i18n.tsx` | migraciones 001, 003, 006, 013–014 | Implementada; tarea T1/T6 pendiente |
-| RF-006–007 | `lifts.ts`, `InitialSetup` | migraciones 002–004 | Implementada; unitarias pendientes |
+| RF-006–007 | `lifts.ts`, `InitialSetup` | migraciones 002–004 | Unitarias de nivel, ratios y límites superadas |
 | RF-020–023 | `exercise-encyclopedia.tsx` | migraciones 005 y 010 | Implementada |
-| RF-024–026 | `lift-progress.tsx`, `routine-generator.ts` | `lift_records` | Implementada; casos sin referencia pendientes |
+| RF-024–026 | `lift-progress.tsx`, `routine-generator.ts` | `lift_records` | Unitarias de ausencia de marca, porcentaje y redondeo superadas |
 | RF-030–038 | `routine-hub.tsx`, `routine-generator.ts` | migraciones 007–012 | Implementada; E2E pendiente |
 | RF-040–047 | `app/page.tsx`, repositorio | sesiones y series de 001 | Implementada; E2E pendiente |
 | RF-050–057 | `routine-hub.tsx` | migraciones 007–012 | Implementada; RLS social pendiente |
-| RF-058–059 | `public-athlete-profile.tsx` | migraciones 013–015 | Implementada; privacidad pendiente de suite ampliada |
-| RF-060–063 | `notification-center.tsx` | migración 015 | Implementada; idempotencia y RLS pendientes de prueba |
-| RF-064–068 | `achievement-console.tsx`, perfil público | migración 015 | Implementada; fórmula y triggers pendientes de prueba |
+| RF-058–059 | `public-athlete-profile.tsx` | migraciones 013–015 | Prueba pgTAP añadida; ejecución pendiente en entorno DB operativo |
+| RF-060–063 | `notification-center.tsx` | migración 015 | Prueba pgTAP añadida; ejecución pendiente en entorno DB operativo |
+| RF-064–069 | `achievement-console.tsx`, `gamification-celebration.tsx`, perfil público | migraciones 015 | Detección de celebraciones probada; volumen y fórmula requieren ampliación |
 | RF-070–073 | `coach-assistant.tsx` | Contexto cargado por repositorio | Implementada; evaluación de respuestas pendiente |
 | RNF-001 | CSS responsive | — | Implementada; QA 360/768/1440 pendiente |
-| RNF-002 | UI semántica, primitives | — | Auditoría WCAG pendiente |
+| RNF-002 | UI semántica, primitives | — | Lint de accesibilidad superado; auditoría WCAG manual pendiente |
 | RNF-003 | Build de producción | — | Métricas de despliegue pendientes |
 | RNF-004–006 | RLS, constraints, claves únicas | todas las migraciones | Cobertura inicial; ampliación pendiente |
-| RNF-007 | tipos, reglas y repositorio | — | TypeScript superado |
+| RNF-007 | tipos, reglas y repositorio | — | TypeScript, lint y 12 unitarias superados; workflow automático añadido |
 | RNF-008 | migraciones y variables | — | Documentada |
 | RNF-009 | `i18n.tsx` y contenido bilingüe | `preferred_language` | Implementada; recorrido completo pendiente |
 | RNF-010 | generador explicable | marcas y notas | Implementada |
@@ -37,12 +37,12 @@
 
 | ID | Evidencia | Ubicación propuesta |
 | --- | --- | --- |
-| EV-01 | salida de tipos y build | anexo técnico |
-| EV-02 | resultados unitarios de nivel y cargas | informe de pruebas |
+| EV-01 | salida de tipos y build | workflow `quality.yml` y anexo técnico |
+| EV-02 | 12 unitarias de nivel, cargas, generador y celebraciones | `web/tests/unit` e informe de pruebas |
 | EV-03 | RLS con dos usuarios | informe de seguridad |
-| EV-04 | privacidad granular | captura y prueba automatizada |
+| EV-04 | privacidad granular | `supabase/tests/0002_social_privacy_gamification.test.sql` |
 | EV-05 | importación y procedencia | prueba E2E |
-| EV-06 | notificación y XP idempotente | prueba de integración |
+| EV-06 | notificación, hitos y XP social | `supabase/tests/0002_social_privacy_gamification.test.sql` |
 | EV-07 | navegación por teclado | checklist de accesibilidad |
 | EV-08 | Core Web Vitals | informe de rendimiento |
 | EV-09 | tareas T1–T8 | resultados de usuarios |

@@ -1,7 +1,8 @@
 'use client';
 
-import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, type SubmitEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
+import NextImage from 'next/image';
 import {
   ArrowLeft,
   BarChart3,
@@ -34,6 +35,7 @@ import { RoutineHub } from '@/components/routine-hub';
 import { CoachAssistant } from '@/components/coach-assistant';
 import { AchievementConsole } from '@/components/achievement-console';
 import { NotificationCenter } from '@/components/notification-center';
+import { GamificationCelebration, requestGamificationCheck } from '@/components/gamification-celebration';
 import { I18nProvider, translateKnownText, useI18n } from '@/lib/i18n';
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { determineAthleteLevel, liftDefinitions, latestLiftRecords, todayForInput } from '@/lib/workout/lifts';
@@ -99,7 +101,7 @@ function initialsFor(name: string) {
 
 function ProfilePicture({ profile }: { profile: UserProfile }) {
   return profile.avatarBase64
-    ? <img src={profile.avatarBase64} alt="" />
+    ? <NextImage src={profile.avatarBase64} alt="" width={320} height={320} unoptimized />
     : <>{initialsFor(profile.displayName)}</>;
 }
 
@@ -120,14 +122,15 @@ function GoalSelector({
   return (
     <div className="goal-grid">
       {profileGoals.map((goal) => (
-        <label className={selected.includes(goal.id) ? 'goal-option is-selected' : 'goal-option'} key={goal.id}>
+        <div className={selected.includes(goal.id) ? 'goal-option is-selected' : 'goal-option'} key={goal.id}>
           <Checkbox
+            id={`goal-${goal.id}`}
             checked={selected.includes(goal.id)}
             onCheckedChange={(checked) => toggle(goal.id, checked)}
             aria-label={language === 'es' ? goal.label : goal.labelEn}
           />
-          <span><strong>{language === 'es' ? goal.label : goal.labelEn}</strong><small>{language === 'es' ? goal.description : goal.descriptionEn}</small></span>
-        </label>
+          <label htmlFor={`goal-${goal.id}`}><strong>{language === 'es' ? goal.label : goal.labelEn}</strong><small>{language === 'es' ? goal.description : goal.descriptionEn}</small></label>
+        </div>
       ))}
     </div>
   );
@@ -139,7 +142,9 @@ async function compressAvatar(file: File): Promise<string> {
 
   const source = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
+    reader.onload = () => typeof reader.result === 'string'
+      ? resolve(reader.result)
+      : reject(new Error('No se pudo leer la imagen.'));
     reader.onerror = () => reject(new Error('No se pudo leer la imagen.'));
     reader.readAsDataURL(file);
   });
@@ -246,7 +251,8 @@ function InitialSetup({
             <p className="eyebrow">{tr('Tu ritmo', 'Your schedule')}</p>
             <h1>{tr('¿Cuántos días entrenas a la semana?', 'How many days a week do you train?')}</h1>
             <p>{tr('Usaremos tu disponibilidad para proponerte rutinas que puedas mantener.', 'We will use your availability to suggest routines you can sustain.')}</p>
-            <div className="day-selector" role="group" aria-label={tr('Días de entrenamiento por semana', 'Training days per week')}>
+            <fieldset className="day-selector">
+              <legend className="sr-only">{tr('Días de entrenamiento por semana', 'Training days per week')}</legend>
               {Array.from({ length: 7 }, (_, index) => index + 1).map((days) => (
                 <button
                   type="button"
@@ -258,7 +264,7 @@ function InitialSetup({
                   <strong>{days}</strong><span>{days === 1 ? tr('día', 'day') : tr('días', 'days')}</span>
                 </button>
               ))}
-            </div>
+            </fieldset>
           </>}
 
           {step === 1 && <>
@@ -487,9 +493,12 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
   }, [isPaused, screen]);
 
   useEffect(() => {
-    setProfile((current) => current && current.preferredLanguage !== language
-      ? { ...current, preferredLanguage: language }
-      : current);
+    const syncLanguage = window.setTimeout(() => {
+      setProfile((current) => current && current.preferredLanguage !== language
+        ? { ...current, preferredLanguage: language }
+        : current);
+    }, 0);
+    return () => window.clearTimeout(syncLanguage);
   }, [language]);
 
   const totals = useMemo(() => {
@@ -590,6 +599,7 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
         exercises.flatMap((exercise) => exercise.sets.map((set) => workoutRepository.saveSet(set))),
       );
       await workoutRepository.finishSession(activeSessionId);
+      requestGamificationCheck();
       setHistory(await workoutRepository.loadHistory(user.id));
       setActiveSessionId(null);
       setShowFinishPrompt(false);
@@ -639,6 +649,7 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
     const savedLiftRecords = await workoutRepository.saveLiftRecords(user.id, initialLiftRecords);
     const savedProfile = await workoutRepository.saveProfile(nextProfile);
     await workoutRepository.configureInitialRoutine(user.id, savedProfile.level);
+    requestGamificationCheck();
     const updatedPlan = await workoutRepository.loadPlan(user.id);
     setLiftRecords(savedLiftRecords);
     setProfile(savedProfile);
@@ -654,6 +665,7 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
     setRoutines(updatedRoutines);
     setPlan(updatedPlan);
     if (!activeSessionId) setExercises(updatedPlan?.exercises ?? []);
+    requestGamificationCheck();
   }
 
   async function chooseProfileAvatar(event: ChangeEvent<HTMLInputElement>) {
@@ -672,6 +684,7 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
 
   function applyLiftRecords(records: LiftRecord[]) {
     setLiftRecords(records);
+    requestGamificationCheck();
     if (!profile || activeSessionId) return;
     void (async () => {
       try {
@@ -740,33 +753,33 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
                   </Button>
                 </header>
                 <p className="exercise-context">{exercise.context}</p>
-                <div className="set-table" role="table" aria-label={`Series de ${exercise.name}`}>
-                  <div className="set-row set-header" role="row">
-                    <span role="columnheader">{tr('Serie', 'Set')}</span><span role="columnheader">{tr('Carga', 'Load')}</span><span role="columnheader">{tr('Reps', 'Reps')}</span><span role="columnheader">{tr('Resultado', 'Result')}</span>
-                  </div>
-                  {exercise.sets.map((set, setIndex) => (
-                    <div className={`set-row is-${set.status}`} role="row" key={set.id}>
-                      <strong role="cell">{setIndex + 1}</strong>
-                      <label role="cell">
+                <table className="set-table" aria-label={`Series de ${exercise.name}`}>
+                  <thead><tr className="set-row set-header">
+                    <th scope="col">{tr('Serie', 'Set')}</th><th scope="col">{tr('Carga', 'Load')}</th><th scope="col">{tr('Reps', 'Reps')}</th><th scope="col">{tr('Resultado', 'Result')}</th>
+                  </tr></thead>
+                  <tbody>{exercise.sets.map((set, setIndex) => (
+                    <tr className={`set-row is-${set.status}`} key={set.id}>
+                      <th scope="row">{setIndex + 1}</th>
+                      <td><label>
                         <span className="sr-only">Carga de la serie {setIndex + 1}</span>
                         <input inputMode="decimal" value={set.weight} onChange={(event) => updateSet(exercise.id, set.id, { weight: Number(event.target.value) })} aria-label={`Carga de la serie ${setIndex + 1} en kilogramos`} />
                         <small>kg</small>
-                      </label>
-                      <label role="cell">
+                      </label></td>
+                      <td><label>
                         <span className="sr-only">Repeticiones de la serie {setIndex + 1}</span>
                         <input inputMode="numeric" value={set.reps} onChange={(event) => updateSet(exercise.id, set.id, { reps: Number(event.target.value) })} aria-label={`Repeticiones de la serie ${setIndex + 1}`} />
-                      </label>
-                      <div className="set-actions" role="cell">
+                      </label></td>
+                      <td><div className="set-actions">
                         <button type="button" className="set-result complete" aria-label={`Marcar serie ${setIndex + 1} como completada`} aria-pressed={set.status === 'completed'} onClick={() => updateSet(exercise.id, set.id, { status: set.status === 'completed' ? 'pending' : 'completed' })}>
                           <Check aria-hidden="true" /><span>{tr('Hecha', 'Done')}</span>
                         </button>
                         <button type="button" className="set-result fail" aria-label={`Marcar serie ${setIndex + 1} como fallida`} aria-pressed={set.status === 'failed'} onClick={() => updateSet(exercise.id, set.id, { status: set.status === 'failed' ? 'pending' : 'failed' })}>
                           <X aria-hidden="true" /><span>{tr('Fallo', 'Fail')}</span>
                         </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      </div></td>
+                    </tr>
+                  ))}</tbody>
+                </table>
               </article>
             ))}
           </section>
@@ -890,7 +903,7 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
                 {profile.profileVisibility === 'private' && <p><LockKeyhole aria-hidden="true" />{tr('Estos permisos quedan guardados, pero nadie verá el perfil hasta que lo marques como público.', 'These permissions are saved, but nobody can view the profile until you make it public.')}</p>}
               </section>
               <div className="profile-actions">
-                {profileSaved && <span role="status">{tr('Cambios guardados', 'Changes saved')}</span>}
+                {profileSaved && <output>{tr('Cambios guardados', 'Changes saved')}</output>}
                 <Button type="submit" disabled={profileSaving}>{profileSaving ? tr('Guardando…', 'Saving…') : tr('Guardar perfil', 'Save profile')}</Button>
               </div>
             </form>
@@ -1052,7 +1065,7 @@ function AuthScreen() {
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState('');
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
     setMessage('');
@@ -1100,7 +1113,7 @@ function AuthScreen() {
             <span>{tr('Contraseña', 'Password')}</span>
             <input required type="password" minLength={8} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} />
           </label>
-          {message && <p className="auth-message" role="status">{message}</p>}
+          {message && <output className="auth-message">{message}</output>}
           <Button size="lg" type="submit" disabled={pending}>
             {pending ? tr('Conectando…', 'Connecting…') : mode === 'login' ? tr('Entrar', 'Sign in') : tr('Crear cuenta', 'Create account')}
           </Button>
@@ -1120,15 +1133,16 @@ function AuthScreen() {
 export default function Home() {
   const [language, setLanguage] = useState<Language>('es');
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(isSupabaseConfigured);
 
   useEffect(() => {
     const saved = window.localStorage.getItem('haltero-language');
     const initial: Language = saved === 'en' || saved === 'es'
       ? saved
       : navigator.language.toLowerCase().startsWith('en') ? 'en' : 'es';
-    setLanguage(initial);
+    const syncLanguage = window.setTimeout(() => setLanguage(initial), 0);
     document.documentElement.lang = initial;
+    return () => window.clearTimeout(syncLanguage);
   }, []);
 
   const applyLanguage = useCallback((next: Language) => {
@@ -1144,15 +1158,14 @@ export default function Home() {
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
-      setLoading(false);
       return;
     }
 
     const supabase = getSupabaseClient();
-    supabase.auth.getUser().then(({ data }) => {
+    void supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
       setLoading(false);
-    });
+    }, () => setLoading(false));
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
@@ -1170,7 +1183,10 @@ export default function Home() {
       ) : !user ? (
         <AuthScreen />
       ) : (
-        <TrainingApp user={user} onPreferredLanguageLoaded={applyLanguage} />
+        <>
+          <GamificationCelebration userId={user.id} />
+          <TrainingApp user={user} onPreferredLanguageLoaded={applyLanguage} />
+        </>
       )}
     </I18nProvider>
   );

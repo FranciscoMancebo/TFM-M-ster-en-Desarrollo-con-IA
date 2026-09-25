@@ -21,7 +21,7 @@ Capacidades disponibles:
 - enciclopedia de fuerza, movilidad, arrancada y dos tiempos con variantes y hueco para vídeo;
 - comunidad con filtros, likes, preguntas al autor y perfiles públicos configurables;
 - notificaciones por likes y preguntas;
-- experiencia, niveles de cuenta y logros desbloqueables;
+- experiencia, niveles de cuenta, logros desbloqueables y celebraciones animadas;
 - entrenador conversacional gratuito basado en reglas y en el contexto almacenado;
 - interfaz bilingüe en español e inglés.
 
@@ -81,9 +81,21 @@ Las migraciones de `supabase/migrations` son la fuente de verdad. El flujo actua
 Desde `web/`:
 
 ```powershell
-npx.cmd tsc --noEmit
-npm.cmd run build
+npm.cmd run test
+npm.cmd run typecheck
+npm.cmd run test:e2e
+npm.cmd run check
 ```
+
+`test` ejecuta las pruebas unitarias de dominio; `test:e2e` abre Chromium mediante Playwright; y `check` agrupa tipos, lint, unitarias y build de producción. La primera ejecución E2E necesita instalar el navegador con `npx.cmd playwright install chromium`.
+
+Las pruebas transaccionales de seguridad y comportamiento de Supabase están en `supabase/tests/`. Con Docker Desktop activo y el proyecto enlazado se ejecutan desde `web/` con:
+
+```powershell
+npm.cmd run test:db
+```
+
+El workflow `.github/workflows/quality.yml` reproduce automáticamente tipos, unitarias, build y E2E en cada cambio de `main` y en cada pull request.
 
 La seguridad de datos se apoya en Row Level Security y en funciones RPC con comprobación de `auth.uid()`. Nunca debe utilizarse una clave de servicio en el navegador.
 

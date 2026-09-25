@@ -77,7 +77,7 @@ Publicar el perfil, permitir rutinas pero ocultar datos y progreso. Consultarlo 
 
 Desde una segunda cuenta, dar like y formular una pregunta. Volver a la cuenta autora, abrir la campana, marcar como leído y consultar XP/logros.
 
-**Éxito:** existen dos notificaciones, el contador disminuye y la XP no se duplica al recargar.
+**Éxito:** existen dos notificaciones, el contador disminuye, la XP no se duplica al recargar y cada nuevo logro o subida de nivel produce una sola celebración animada.
 
 ### T8 — Idioma
 
@@ -95,15 +95,21 @@ Cambiar a inglés, recorrer Perfil, Rutinas y Logros y volver a iniciar sesión.
 
 ### Dominio
 
-Casos unitarios previstos:
+Casos unitarios automatizados:
 
 - nivel con y sin marcas;
 - limitación por experiencia;
 - referencia compatible por ejercicio;
 - ausencia de marca;
 - redondeo a 2,5 kg;
-- volumen excluyendo fallos;
-- fórmula de nivel de cuenta.
+- selección de variantes de iniciación;
+- límite de uno a siete días.
+
+La suite se encuentra en `web/tests/unit` y se ejecuta con `npm.cmd run test`. Incluye la detección no repetitiva de logros y subidas de nivel. Quedan como ampliación la función de volumen y la fórmula de nivel de cuenta.
+
+### Navegador
+
+La suite `web/tests/e2e` comprueba que la pantalla de acceso se representa correctamente y que se puede alternar entre inicio de sesión y creación de cuenta en Chromium. Se ejecuta con `npm.cmd run test:e2e` y no crea usuarios ni modifica datos remotos.
 
 ### Datos y seguridad
 
@@ -117,6 +123,8 @@ Casos unitarios previstos:
 - Notificaciones solo del destinatario.
 - XP idempotente.
 - RPC inaccesibles para `anon`.
+
+Las pruebas pgTAP residen en `supabase/tests`: `0001` cubre el aislamiento del núcleo de rutinas y sesiones, y `0002` cubre privacidad social, likes, preguntas, notificaciones y gamificación. Ambas usan transacciones con `ROLLBACK`.
 
 ### Accesibilidad
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import NextImage from 'next/image';
 import { CalendarDays, Download, Dumbbell, EyeOff, Heart, MessageCircle, Trophy } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
 import { Button } from '@/components/ui/button';
@@ -65,7 +66,7 @@ export function PublicAthleteProfileDialog({
       <DialogHeader className="sr-only"><DialogTitle>{tr('Perfil público de atleta', 'Public athlete profile')}</DialogTitle><DialogDescription>{tr('Datos compartidos por el atleta.', 'Information shared by the athlete.')}</DialogDescription></DialogHeader>
       {loading ? <div className="public-profile-loading"><span /><p>{tr('Cargando perfil…', 'Loading profile…')}</p></div> : profile ? <div className="public-profile-scroll">
         <header className="public-profile-hero">
-          <div className="public-profile-avatar">{profile.avatarBase64 ? <img src={profile.avatarBase64} alt="" /> : initials(profile.displayName)}</div>
+          <div className="public-profile-avatar">{profile.avatarBase64 ? <NextImage src={profile.avatarBase64} alt="" width={152} height={152} unoptimized /> : initials(profile.displayName)}</div>
           <div className="public-profile-identity"><p className="eyebrow">{tr('Perfil de atleta', 'Athlete profile')}</p><h2>{profile.displayName}</h2><span>{language === 'es' ? levelNames[profile.level][0] : levelNames[profile.level][1]} · {tr('Desde', 'Since')} {new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric' }).format(new Date(profile.joinedAt))}</span></div>
           <div className="public-profile-rank" aria-label={tr('Nivel de experiencia de la cuenta', 'Account experience level')}><Trophy aria-hidden="true" /><span>{tr('Nivel', 'Level')} {profile.accountLevel}</span><strong>{profile.totalXp.toLocaleString(locale)} XP</strong><small>{profile.unlockedAchievementCount} {tr('logros', 'achievements')}</small></div>
         </header>

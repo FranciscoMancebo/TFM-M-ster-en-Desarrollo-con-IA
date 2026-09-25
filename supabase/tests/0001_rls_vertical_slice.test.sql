@@ -22,7 +22,7 @@ select lives_ok(
 
 select lives_ok(
   $$insert into public.routine_versions (id, routine_id, version_number, title, level, objective, weeks, days_per_week)
-    values ('30000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 1, 'Base privada', 'intermediate', 'Técnica', 4, 3)$$,
+    values ('30000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 1, 'Base privada', 'intermediate', 'technique', 4, 3)$$,
   'el propietario puede crear una versión privada'
 );
 

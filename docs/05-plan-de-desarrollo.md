@@ -32,10 +32,11 @@ El proyecto sigue entregas verticales: cada incremento incorpora interfaz, regla
 | Activación e importación | Implementada | migración 012 |
 | Datos ficticios | Implementada | migración 012 |
 | Perfiles públicos y privacidad | Implementada | migraciones 013–014 |
-| Notificaciones y logros | Implementada | migración 015 y componentes asociados |
+| Notificaciones y logros | Implementada | migración 015, consola y celebraciones globales |
 | Español/inglés | Implementada | `i18n.tsx` y preferencia persistida |
 | Entrenador por reglas | Implementada | `coach-assistant.tsx` |
-| Suite funcional/E2E completa | Pendiente | plan de evaluación |
+| Suite automatizada inicial | Implementada | Vitest, Playwright y pgTAP |
+| Suite funcional/E2E completa | En curso | faltan sesiones, rutinas e importación |
 | Evaluación con usuarios | Pendiente | protocolo definido |
 | Exportación y borrado autoservicio | Pendiente | trabajo futuro priorizado |
 
@@ -106,9 +107,9 @@ El proyecto sigue entregas verticales: cada incremento incorpora interfaz, regla
 
 ### Must antes de la entrega académica
 
-- ampliar pruebas RLS a las migraciones sociales y de gamificación;
-- añadir pruebas unitarias de nivel, porcentajes y generador;
-- ejecutar build, lint y revisión de tipos de forma reproducible;
+- ejecutar la suite pgTAP social con Docker operativo y conservar su salida;
+- ampliar E2E a sesiones, rutinas e importación con cuentas aisladas;
+- ampliar el lint con auditoría específica de accesibilidad sobre los recorridos completos;
 - ejecutar evaluación de accesibilidad;
 - realizar y documentar evaluación con usuarios o inspección experta;
 - completar matriz de trazabilidad con resultados reales;
