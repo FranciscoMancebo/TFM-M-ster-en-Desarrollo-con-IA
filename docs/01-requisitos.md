@@ -59,6 +59,8 @@ La identidad efectiva procede de `auth.uid()`. Un identificador enviado desde el
 - **RF-045:** confirmar la finalización si quedan series pendientes.
 - **RF-046:** guardar duración, volumen, completadas, fallidas y omitidas.
 - **RF-047:** consultar el historial de sesiones terminadas.
+- **RF-048:** detectar al finalizar una sesión las nuevas mejores marcas en los cuatro movimientos de referencia, guardarlas con origen `workout` y mostrar la mejora en el resumen.
+- **RF-049:** planificar en vistas semanal y mensual entrenamientos asociados a días de rutina, descansos, competiciones o sesiones libres; mostrar su estado, permitir reprogramarlos y calcular adherencia semanal/mensual, racha y semanas completas.
 
 ### Comunidad y perfiles públicos
 
@@ -81,7 +83,7 @@ La identidad efectiva procede de `auth.uid()`. Un identificador enviado desde el
 - **RF-063:** marcar una o todas las notificaciones como leídas.
 - **RF-064:** otorgar XP idempotente por sesión, marca, publicación e interacción recibida.
 - **RF-065:** calcular el nivel de cuenta a partir del XP acumulado.
-- **RF-066:** desbloquear logros por umbrales de actividad, volumen acumulado, series completadas y mejoras de marca personal.
+- **RF-066:** desbloquear logros por umbrales de actividad, volumen acumulado, series completadas, mejoras de marca personal, rachas y semanas completas.
 - **RF-067:** mostrar logros desbloqueados, progreso de los pendientes e historial reciente de XP.
 - **RF-068:** mostrar nivel, XP y número de logros en perfiles públicos.
 - **RF-069:** mostrar una celebración animada y no repetitiva al desbloquear un logro o subir de nivel de cuenta.
@@ -179,6 +181,8 @@ Como autor, quiero conocer likes y preguntas y ver logros de uso.
 - Sin referencia, la carga sugerida es 0 kg y se muestra una advertencia.
 - El redondeo asistido utiliza incrementos de 2,5 kg.
 - Un intento fallido no aumenta una marca.
+- Solo una serie completada del movimiento canónico puede crear una marca automática; las variantes y los accesorios no se equiparan al levantamiento de competición.
+- Una marca automática debe superar el mejor registro histórico del mismo levantamiento y la finalización de la sesión no puede duplicarla.
 - XP y logros no modifican el nivel deportivo ni prescriben carga.
 - Las recompensas usan claves únicas para evitar duplicados.
 - El avatar base64 debe proceder de una imagen válida, comprimida y limitada en tamaño.

@@ -8,6 +8,7 @@ import {
   BarChart3,
   Bot,
   BookOpen,
+  CalendarDays,
   Camera,
   Check,
   ChevronRight,
@@ -36,6 +37,7 @@ import { CoachAssistant } from '@/components/coach-assistant';
 import { AchievementConsole } from '@/components/achievement-console';
 import { NotificationCenter } from '@/components/notification-center';
 import { GamificationCelebration, requestGamificationCheck } from '@/components/gamification-celebration';
+import { TrainingCalendar } from '@/components/training-calendar';
 import { I18nProvider, translateKnownText, useI18n } from '@/lib/i18n';
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { determineAthleteLevel, liftDefinitions, latestLiftRecords, todayForInput } from '@/lib/workout/lifts';
@@ -54,13 +56,15 @@ import {
   type TrainingSet,
   type UserProfile,
   type WeightliftingExperience,
+  type WorkoutPersonalBest,
 } from '@/lib/workout/types';
 
 type Screen = 'today' | 'session' | 'summary';
-type AppView = 'today' | 'routines' | 'coach' | 'encyclopedia' | 'history' | 'achievements' | 'profile';
+type AppView = 'today' | 'calendar' | 'routines' | 'coach' | 'encyclopedia' | 'history' | 'achievements' | 'profile';
 
 const navItems = [
   { id: 'today' as const, label: 'Hoy', labelEn: 'Today', icon: Flame },
+  { id: 'calendar' as const, label: 'Calendario', labelEn: 'Calendar', icon: CalendarDays },
   { id: 'routines' as const, label: 'Rutinas', labelEn: 'Routines', icon: BookOpen },
   { id: 'coach' as const, label: 'Entrenador', labelEn: 'Coach', icon: Bot },
   { id: 'encyclopedia' as const, label: 'Ejercicios', labelEn: 'Exercises', icon: Compass },
@@ -439,6 +443,7 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
   const [dataError, setDataError] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
+  const [workoutPersonalBests, setWorkoutPersonalBests] = useState<WorkoutPersonalBest[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -586,6 +591,35 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
     }
   }
 
+  async function startScheduledWorkout(routineDayId: string) {
+    if (activeSessionId) {
+      setView('today');
+      setScreen('session');
+      return;
+    }
+
+    setDataError('');
+    try {
+      const scheduledPlan = await workoutRepository.loadPlan(user.id, routineDayId);
+      if (!scheduledPlan) throw new Error(tr('No se pudo preparar el día de rutina seleccionado.', 'The selected routine day could not be prepared.'));
+      const scheduledExercises = freshExercises(scheduledPlan.exercises);
+      const active = await workoutRepository.startSession(user.id, {
+        ...scheduledPlan,
+        exercises: scheduledExercises,
+      });
+      setPlan(scheduledPlan);
+      setExercises(active.exercises);
+      setActiveSessionId(active.sessionId);
+      setElapsed(0);
+      setView('today');
+      setScreen('session');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : tr('No se pudo iniciar la sesión programada.', 'The scheduled session could not be started.');
+      setDataError(message);
+      throw error;
+    }
+  }
+
   async function finishSession() {
     if (totals.pending > 0 && !showFinishPrompt) {
       setShowFinishPrompt(true);
@@ -598,9 +632,25 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
       await Promise.all(
         exercises.flatMap((exercise) => exercise.sets.map((set) => workoutRepository.saveSet(set))),
       );
-      await workoutRepository.finishSession(activeSessionId);
+      const personalBests = await workoutRepository.finishSession(activeSessionId);
       requestGamificationCheck();
-      setHistory(await workoutRepository.loadHistory(user.id));
+      const [updatedHistory, updatedLiftRecords] = await Promise.all([
+        workoutRepository.loadHistory(user.id),
+        workoutRepository.loadLiftRecords(user.id),
+      ]);
+      setHistory(updatedHistory);
+      setLiftRecords(updatedLiftRecords);
+      setWorkoutPersonalBests(personalBests);
+      if (profile) {
+        const updatedLevel = determineAthleteLevel(
+          profile.weightKg,
+          profile.weightliftingExperience,
+          updatedLiftRecords,
+        );
+        if (updatedLevel !== profile.level) {
+          setProfile(await workoutRepository.saveProfile({ ...profile, level: updatedLevel }));
+        }
+      }
       setActiveSessionId(null);
       setShowFinishPrompt(false);
       setScreen('summary');
@@ -609,13 +659,21 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
     }
   }
 
-  function resetSession(nextView: AppView = 'today') {
-    setExercises(plan ? freshExercises(plan.exercises) : []);
+  async function resetSession(nextView: AppView = 'today') {
     setElapsed(0);
     setIsPaused(false);
     setShowFinishPrompt(false);
+    setWorkoutPersonalBests([]);
     setScreen('today');
     setView(nextView);
+    try {
+      const updatedPlan = await workoutRepository.loadPlan(user.id);
+      setPlan(updatedPlan);
+      setExercises(updatedPlan ? freshExercises(updatedPlan.exercises) : []);
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : tr('No se pudo preparar la siguiente sesión.', 'The next session could not be prepared.'));
+      setExercises(plan ? freshExercises(plan.exercises) : []);
+    }
   }
 
   async function saveProfile() {
@@ -796,6 +854,21 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
             <><p><strong>{totals.completed}</strong> {tr('completadas', 'completed')} · {totals.failed} {tr('fallidas', 'failed')} · {totals.pending} {tr('pendientes', 'pending')}</p><Button size="lg" onClick={finishSession}>{tr('Finalizar sesión', 'Finish session')}</Button></>
           )}
         </footer>
+      </AppFrame>
+    );
+  }
+
+  if (view === 'calendar') {
+    return (
+      <AppFrame activeView={view} onNavigate={navigate} profile={profile}>
+        {dataError && <div className="data-alert routine-global-alert" role="alert">{dataError}</div>}
+        <TrainingCalendar
+          userId={user.id}
+          routineVersionId={plan?.routineVersionId ?? null}
+          hasActiveSession={Boolean(activeSessionId)}
+          onStartWorkout={startScheduledWorkout}
+          onError={setDataError}
+        />
       </AppFrame>
     );
   }
@@ -987,6 +1060,36 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
             <div className="summary-check"><Check aria-hidden="true" /></div>
             <p className="eyebrow">{tr('Sesión guardada', 'Session saved')}</p><h1>{tr('Entrenamiento registrado', 'Training recorded')}</h1><p>{translateKnownText(language, plan?.title ?? '')} · {tr('Semana', 'Week')} {plan?.weekNumber}, {tr('día', 'day')} {plan?.dayIndex}</p>
           </section>
+          {workoutPersonalBests.length > 0 && (
+            <section className="personal-best-celebration" aria-live="polite">
+              <div className="personal-best-heading">
+                <span><Trophy aria-hidden="true" /></span>
+                <div>
+                  <p className="eyebrow">{tr('Nuevo récord personal', 'New personal best')}</p>
+                  <h2>{workoutPersonalBests.length === 1
+                    ? tr('Has superado una de tus marcas', 'You beat one of your personal bests')
+                    : tr(`Has superado ${workoutPersonalBests.length} marcas`, `You beat ${workoutPersonalBests.length} personal bests`)}</h2>
+                </div>
+              </div>
+              <div className="personal-best-grid">
+                {workoutPersonalBests.map((record) => {
+                  const definition = liftDefinitions.find((lift) => lift.id === record.lift);
+                  const improvement = record.previousWeightKg === null
+                    ? null
+                    : record.weightKg - record.previousWeightKg;
+                  return (
+                    <article key={record.lift}>
+                      <span>{translateKnownText(language, definition?.label ?? record.lift)}</span>
+                      <strong>{record.weightKg.toLocaleString(locale)} kg</strong>
+                      <small>{improvement === null
+                        ? tr('Primera marca registrada', 'First recorded result')
+                        : `+${improvement.toLocaleString(locale)} kg`}</small>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          )}
           <section className="summary-grid" aria-label={tr('Resumen de la sesión', 'Session summary')}>
             <article><strong>{totals.completed}</strong><span>{tr('Series completadas', 'Completed sets')}</span></article>
             <article><strong>{totals.failed}</strong><span>{tr('Series fallidas', 'Failed sets')}</span></article>
@@ -999,8 +1102,8 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
           </div>
           <p className="formula-note">{tr('El volumen suma carga × repeticiones de cada serie completada. Los intentos fallidos no cuentan.', 'Volume is load × repetitions for every completed set. Failed attempts do not count.')}</p>
           <div className="summary-actions">
-            <Button variant="outline" size="lg" onClick={() => resetSession('history')}>{tr('Ver historial', 'View history')}</Button>
-            <Button size="lg" onClick={() => resetSession('today')}>{tr('Volver a Hoy', 'Back to Today')}</Button>
+            <Button variant="outline" size="lg" onClick={() => void resetSession('history')}>{tr('Ver historial', 'View history')}</Button>
+            <Button size="lg" onClick={() => void resetSession('today')}>{tr('Volver a Hoy', 'Back to Today')}</Button>
           </div>
         </div>
       </AppFrame>

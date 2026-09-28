@@ -12,11 +12,14 @@ Capacidades disponibles:
 
 - registro, inicio y cierre de sesión con Supabase Auth;
 - configuración inicial guiada de disponibilidad, medidas, experiencia, objetivos, avatar y marcas;
+- detección automática de nuevas marcas personales desde series completadas en los movimientos de referencia;
 - cálculo de cuatro niveles deportivos: iniciación, principiante, intermedio y avanzado;
 - rutinas privadas o públicas, editables, eliminables y organizadas en días independientes;
 - creación manual o asistida mediante reglas por nivel, objetivo y marcas disponibles;
 - activación de rutinas propias e importación/activación de rutinas públicas con procedencia;
 - registro de sesiones, series completadas o fallidas, pausa, reanudación y resumen;
+- calendario semanal y mensual para planificar, reprogramar y clasificar entrenamientos, descansos, competiciones y sesiones libres;
+- adherencia semanal y mensual, racha de entrenamientos, días completados y semanas perfectas;
 - historial y gráficos fechados para sentadilla, arrancada, sentadilla frontal y dos tiempos;
 - enciclopedia de fuerza, movilidad, arrancada y dos tiempos con variantes y hueco para vídeo;
 - comunidad con filtros, likes, preguntas al autor y perfiles públicos configurables;

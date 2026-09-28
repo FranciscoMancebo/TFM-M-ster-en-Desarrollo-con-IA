@@ -38,7 +38,7 @@ flowchart TB
 ### Límites
 
 - `web/app/page.tsx`: orquestación de sesión, navegación y vistas.
-- `web/components`: capacidades visuales de rutina, progreso, enciclopedia, entrenador, notificaciones, logros y perfil público.
+- `web/components`: capacidades visuales de rutina, calendario, progreso, enciclopedia, entrenador, notificaciones, logros y perfil público.
 - `web/lib/workout/types.ts`: contratos del dominio.
 - `web/lib/workout/lifts.ts`: marcas, nivel deportivo y utilidades.
 - `web/lib/workout/routine-generator.ts`: generación determinista y explicable.
@@ -91,6 +91,24 @@ Las versiones exactas están bloqueadas en `web/package-lock.json`.
 3. Likes y preguntas se escriben bajo identidad autenticada.
 4. Triggers generan notificaciones y XP para el propietario.
 5. Las claves de evento garantizan idempotencia.
+
+### Finalización de sesión y nuevas marcas
+
+1. La UI sincroniza las series editadas antes de solicitar la finalización.
+2. `finish_workout_session()` bloquea y valida que la sesión activa pertenece al usuario autenticado.
+3. La función completa la sesión y agrupa la carga máxima de las series satisfactorias de los cuatro movimientos canónicos.
+4. Cada candidata se compara con el máximo histórico del mismo levantamiento; variantes e intentos fallidos quedan fuera.
+5. Las mejoras se guardan en `lift_records` con origen `workout` y se devuelven al resumen en la misma transacción.
+6. La UI refresca historial, gráficos, nivel deportivo y la siguiente sesión con las nuevas referencias.
+
+### Calendario y adherencia
+
+1. El calendario obtiene un rango semanal o una rejilla mensual de 42 días y los eventos privados del usuario.
+2. Cada fecha admite un entrenamiento de la rutina activa, descanso, competición o sesión libre; reprogramar conserva la fecha de origen.
+3. Al iniciar un entrenamiento, `link_workout_session_to_calendar()` enlaza la sesión activa con el evento de hoy.
+4. Al finalizar la sesión, un trigger completa el evento enlazado en la misma base de datos.
+5. `my_adherence_summary()` calcula completados, pendientes, omitidos, porcentaje vencido, racha y semanas perfectas.
+6. Los cambios relevantes disparan la evaluación idempotente de logros de constancia.
 
 ## 6. Seguridad y privacidad
 

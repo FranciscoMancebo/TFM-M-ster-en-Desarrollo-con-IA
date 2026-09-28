@@ -22,9 +22,10 @@ Las áreas cubiertas son:
 
 - perfiles, configuración, idioma y privacidad;
 - catálogo y enciclopedia;
-- marcas;
+- marcas manuales, de configuración y detectadas al finalizar entrenamientos;
 - rutinas versionadas y días;
 - asignaciones, sesiones y series;
+- calendario semanal/mensual, reprogramación y adherencia;
 - comunidad, likes, preguntas y respuestas;
 - importación, activación y procedencia;
 - perfiles públicos;
@@ -49,7 +50,7 @@ La clave `service_role` no se utiliza en el navegador.
 npx.cmd supabase db lint --linked
 ```
 
-`supabase/tests/0001_rls_vertical_slice.test.sql` contiene la base de pruebas allow/deny. Debe ampliarse con casos sociales, privacidad granular y gamificación antes de la entrega final.
+Las pruebas pgTAP cubren el corte vertical y RLS (`0001`), comunidad, privacidad y gamificación (`0002`), detección atómica de marcas desde sesiones (`0003`) y calendario/adherencia (`0004`). Se ejecutan con `npm.cmd run test:db` desde `web` cuando Docker Desktop puede iniciar la imagen `pg_prove`.
 
 ## Datos ficticios
 

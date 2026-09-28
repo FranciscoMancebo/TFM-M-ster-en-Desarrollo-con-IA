@@ -70,6 +70,8 @@ Contiene usuario, levantamiento, carga, fecha y origen. Los levantamientos váli
 
 La combinación usuario, levantamiento y fecha es única.
 
+El origen distingue configuración inicial, registro manual y detección desde una sesión. `finish_workout_session()` crea una fila automática únicamente cuando la carga de una serie satisfactoria en el movimiento canónico supera el máximo histórico. La finalización y el alta de marcas comparten transacción para evitar sesiones terminadas sin actualizar su progreso.
+
 ### `exercises`
 
 Catálogo administrado con slug, nombre, material, unilateralidad y metadatos JSON:
@@ -101,6 +103,14 @@ Enlaza usuario y versión activa. Un índice parcial garantiza una sola asignaci
 ### `workout_sessions` y `performed_sets`
 
 La sesión almacena usuario, asignación/día, inicio, fin, estado y notas. Las series guardan ejercicio, orden, carga, repeticiones, RPE opcional, resultado y tiempo.
+
+Los slugs `sentadilla`, `arrancada`, `sentadilla-frontal` y `dos-tiempos` se corresponden de forma explícita con las cuatro marcas. Tirones, pausas, potencia, hang, bloques y demás variantes no actualizan la referencia principal.
+
+### `training_calendar_events`
+
+Representa un único evento por usuario y fecha. Distingue `workout`, `rest`, `competition` y `free_session`, con estado `planned`, `completed` o `skipped`. Un entrenamiento referencia un día de la rutina activa y puede quedar enlazado de forma única a su sesión real. `rescheduled_from` conserva la fecha original al moverlo.
+
+Los eventos de descanso no entran en el denominador de adherencia. La racha considera únicamente eventos ya resueltos, por lo que un entrenamiento todavía pendiente no borra una racha anterior; un evento omitido sí la interrumpe.
 
 ### `routine_likes` y `routine_questions`
 
@@ -191,6 +201,7 @@ Cada evento usa una clave única, por ejemplo `workout:<id>`, para que repetir u
 | Marcas | Solo por proyección autorizada | Lectura/escritura |
 | Notificaciones | Sin acceso | Lectura y marcado |
 | XP y logros | Resumen público si perfil público | Detalle completo |
+| Calendario | Sin acceso | Lectura/escritura y métricas |
 
 ## 8. Catálogo de logros
 
@@ -201,6 +212,7 @@ El catálogo combina hitos de adherencia, registro, progreso y comunidad:
 - series completadas con éxito: 50, 250 y 1.000;
 - marcas fechadas: 1, 10, 25 y 50, además de cubrir los cuatro levantamientos;
 - mejoras de marca personal: 1, 10 y 25;
+- constancia: rachas de 3 y 10 entrenamientos y 1 o 4 semanas perfectas;
 - rutinas públicas, likes y preguntas recibidas mediante umbrales crecientes.
 
 El progreso se calcula desde los datos reales. Para el volumen solo cuentan las series con resultado satisfactorio pertenecientes a sesiones finalizadas; una serie fallida u omitida no contribuye al hito. El catálogo permanece extensible sin modificar la interfaz.

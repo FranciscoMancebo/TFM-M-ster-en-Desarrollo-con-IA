@@ -64,6 +64,56 @@ export type LiftRecord = {
 
 export type NewLiftRecord = Omit<LiftRecord, 'id'>;
 
+export type WorkoutPersonalBest = {
+  lift: LiftType;
+  weightKg: number;
+  previousWeightKg: number | null;
+  achievedOn: string;
+};
+
+export type CalendarEventType = 'workout' | 'rest' | 'competition' | 'free_session';
+export type CalendarEventStatus = 'planned' | 'completed' | 'skipped';
+
+export type TrainingCalendarEvent = {
+  id: string;
+  scheduledOn: string;
+  eventType: CalendarEventType;
+  status: CalendarEventStatus;
+  title: string;
+  notes: string;
+  routineDayId: string | null;
+  routineDayName: string | null;
+  routineDayIndex: number | null;
+  workoutSessionId: string | null;
+  rescheduledFrom: string | null;
+};
+
+export type NewTrainingCalendarEvent = Omit<
+  TrainingCalendarEvent,
+  'id' | 'routineDayName' | 'routineDayIndex' | 'workoutSessionId' | 'rescheduledFrom'
+>;
+
+export type CalendarRoutineDay = {
+  id: string;
+  name: string;
+  dayIndex: number;
+};
+
+export type AdherencePeriod = {
+  planned: number;
+  completed: number;
+  skipped: number;
+  pending: number;
+  percentage: number;
+};
+
+export type AdherenceOverview = {
+  week: AdherencePeriod;
+  month: AdherencePeriod;
+  currentStreak: number;
+  perfectWeeks: number;
+};
+
 export type WeightliftingExperience =
   | 'never'
   | 'under_6_months'

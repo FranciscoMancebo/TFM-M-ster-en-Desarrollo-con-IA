@@ -20,6 +20,12 @@ import type {
   PublicAthleteProfile,
   AppNotification,
   GamificationProgress,
+  WorkoutPersonalBest,
+  AdherenceOverview,
+  CalendarEventStatus,
+  CalendarRoutineDay,
+  NewTrainingCalendarEvent,
+  TrainingCalendarEvent,
 } from './types';
 import { latestLiftRecords } from './lifts';
 
@@ -430,7 +436,7 @@ export const workoutRepository = {
     if (insertError) throw new Error(insertError.message);
   },
 
-  async loadPlan(userId: string): Promise<RoutinePlan | null> {
+  async loadPlan(userId: string, targetRoutineDayId?: string): Promise<RoutinePlan | null> {
     const { data: assignment, error: assignmentError } = await client()
       .from('routine_assignments')
       .select('id,routine_version_id')
@@ -466,7 +472,10 @@ export const workoutRepository = {
       .eq('status', 'completed');
     if (countError) throw new Error(countError.message);
     const completedCount = completedSessionCount ?? 0;
-    const routineDay = days[completedCount % days.length];
+    const routineDay = targetRoutineDayId
+      ? days.find((day) => day.id === targetRoutineDayId)
+      : days[completedCount % days.length];
+    if (!routineDay) throw new Error('El día programado no pertenece a la rutina activa.');
     const currentWeek = Math.floor(completedCount / days.length) % routineVersion.weeks + 1;
 
     const [{ data: prescriptions, error: prescriptionsError }, liftRecords] = await Promise.all([
@@ -615,6 +624,15 @@ export const workoutRepository = {
       throw new Error(setsError.message);
     }
 
+    const { error: calendarError } = await client().rpc('link_workout_session_to_calendar', {
+      target_session_id: createdSession.id,
+      target_routine_day_id: plan.routineDayId,
+    });
+    if (calendarError) {
+      await client().from('workout_sessions').delete().eq('id', createdSession.id);
+      throw new Error(calendarError.message);
+    }
+
     return {
       sessionId: createdSession.id,
       startedAt: createdSession.started_at,
@@ -636,12 +654,19 @@ export const workoutRepository = {
     if (error) throw new Error(error.message);
   },
 
-  async finishSession(sessionId: string) {
-    const { error } = await client()
-      .from('workout_sessions')
-      .update({ status: 'completed', finished_at: new Date().toISOString() })
-      .eq('id', sessionId);
+  async finishSession(sessionId: string): Promise<WorkoutPersonalBest[]> {
+    const { data, error } = await client().rpc('finish_workout_session', {
+      target_session_id: sessionId,
+    });
     if (error) throw new Error(error.message);
+    return (data ?? []).map((record: Record<string, unknown>) => ({
+      lift: record.lift as LiftType,
+      weightKg: Number(record.weight_kg),
+      previousWeightKg: record.previous_weight_kg === null
+        ? null
+        : Number(record.previous_weight_kg),
+      achievedOn: String(record.achieved_on),
+    }));
   },
 
   async loadHistory(userId: string): Promise<CompletedWorkout[]> {
@@ -674,6 +699,112 @@ export const workoutRepository = {
         volumeKg: completed.reduce((sum, set) => sum + Number(set.load_kg) * set.repetitions, 0),
       };
     });
+  },
+
+  async loadCalendarEvents(userId: string, from: string, to: string): Promise<TrainingCalendarEvent[]> {
+    const { data, error } = await client()
+      .from('training_calendar_events')
+      .select('id,scheduled_on,event_type,status,title,notes,routine_day_id,workout_session_id,rescheduled_from,routine_day:routine_days(name,day_index)')
+      .eq('user_id', userId)
+      .gte('scheduled_on', from)
+      .lte('scheduled_on', to)
+      .order('scheduled_on')
+      .order('created_at');
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((event) => {
+      const routineDay = Array.isArray(event.routine_day) ? event.routine_day[0] : event.routine_day;
+      return {
+        id: event.id,
+        scheduledOn: event.scheduled_on,
+        eventType: event.event_type as TrainingCalendarEvent['eventType'],
+        status: event.status as TrainingCalendarEvent['status'],
+        title: event.title,
+        notes: event.notes ?? '',
+        routineDayId: event.routine_day_id,
+        routineDayName: routineDay?.name ?? null,
+        routineDayIndex: routineDay?.day_index ?? null,
+        workoutSessionId: event.workout_session_id,
+        rescheduledFrom: event.rescheduled_from,
+      };
+    });
+  },
+
+  async loadCalendarRoutineDays(routineVersionId: string): Promise<CalendarRoutineDay[]> {
+    const { data, error } = await client()
+      .from('routine_days')
+      .select('id,name,day_index')
+      .eq('routine_version_id', routineVersionId)
+      .eq('week_number', 1)
+      .order('day_index');
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((day) => ({ id: day.id, name: day.name, dayIndex: day.day_index }));
+  },
+
+  async loadAdherenceOverview(): Promise<AdherenceOverview> {
+    const { data, error } = await client().rpc('my_adherence_summary');
+    if (error) throw new Error(error.message);
+    const summary = requireData(data as Record<string, unknown> | null, null);
+    const period = (value: unknown): AdherenceOverview['week'] => {
+      const item = (value ?? {}) as Record<string, unknown>;
+      return {
+        planned: Number(item.planned ?? 0),
+        completed: Number(item.completed ?? 0),
+        skipped: Number(item.skipped ?? 0),
+        pending: Number(item.pending ?? 0),
+        percentage: Number(item.percentage ?? 0),
+      };
+    };
+    return {
+      week: period(summary.week),
+      month: period(summary.month),
+      currentStreak: Number(summary.currentStreak ?? 0),
+      perfectWeeks: Number(summary.perfectWeeks ?? 0),
+    };
+  },
+
+  async createCalendarEvent(userId: string, event: NewTrainingCalendarEvent) {
+    const { error } = await client().from('training_calendar_events').insert({
+      user_id: userId,
+      scheduled_on: event.scheduledOn,
+      event_type: event.eventType,
+      status: event.status,
+      title: event.title.trim(),
+      notes: event.notes.trim() || null,
+      routine_day_id: event.routineDayId,
+    });
+    if (error) throw new Error(error.message);
+  },
+
+  async updateCalendarEventStatus(userId: string, eventId: string, status: CalendarEventStatus) {
+    const { error } = await client()
+      .from('training_calendar_events')
+      .update({ status })
+      .eq('id', eventId)
+      .eq('user_id', userId);
+    if (error) throw new Error(error.message);
+  },
+
+  async rescheduleCalendarEvent(userId: string, event: TrainingCalendarEvent, scheduledOn: string, notes: string) {
+    const { error } = await client()
+      .from('training_calendar_events')
+      .update({
+        scheduled_on: scheduledOn,
+        rescheduled_from: event.rescheduledFrom ?? event.scheduledOn,
+        notes: notes.trim() || null,
+        status: 'planned',
+      })
+      .eq('id', event.id)
+      .eq('user_id', userId);
+    if (error) throw new Error(error.message);
+  },
+
+  async deleteCalendarEvent(userId: string, eventId: string) {
+    const { error } = await client()
+      .from('training_calendar_events')
+      .delete()
+      .eq('id', eventId)
+      .eq('user_id', userId);
+    if (error) throw new Error(error.message);
   },
 
   async loadRoutines(_userId: string): Promise<RoutineSummary[]> {

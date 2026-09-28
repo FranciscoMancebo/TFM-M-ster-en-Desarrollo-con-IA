@@ -53,7 +53,7 @@ Generar una rutina de tres días con enfoque técnico, revisar la explicación d
 
 Activar la rutina, iniciar la sesión, completar una serie, fallar otra, pausar, reanudar y finalizar con una serie pendiente.
 
-**Éxito:** el estado persiste y el resumen coincide con los datos introducidos.
+**Éxito:** el estado persiste, el resumen coincide con los datos introducidos y una serie completada que supera el máximo histórico muestra y guarda la nueva marca. Un fallo o una variante no la modifica.
 
 ### T4 — Progreso
 
@@ -85,6 +85,12 @@ Cambiar a inglés, recorrer Perfil, Rutinas y Logros y volver a iniciar sesión.
 
 **Éxito:** la preferencia persiste y los controles funcionales aparecen en inglés.
 
+### T9 — Calendario y adherencia
+
+Asignar tres días distintos de la rutina a la semana actual, añadir un descanso y una competición, reprogramar una sesión y completar desde el calendario el entrenamiento de hoy.
+
+**Éxito:** las vistas semanal y mensual coinciden, se conservan fecha de origen y estados, la sesión completada actualiza el calendario y los porcentajes, la racha y los logros se recalculan sin duplicados.
+
 ## 5. Evaluación técnica
 
 ### Compilación y tipos
@@ -104,8 +110,12 @@ Casos unitarios automatizados:
 - redondeo a 2,5 kg;
 - selección de variantes de iniciación;
 - límite de uno a siete días.
+- detección atómica de marcas desde sesiones, exclusión de fallos y variantes e idempotencia al finalizar.
+- límites semanales/mensuales, desplazamiento de periodos y rejilla mensual estable de 42 días.
 
 La suite se encuentra en `web/tests/unit` y se ejecuta con `npm.cmd run test`. Incluye la detección no repetitiva de logros y subidas de nivel. Quedan como ampliación la función de volumen y la fórmula de nivel de cuenta.
+
+La prueba pgTAP `0003_workout_personal_bests.test.sql` cubre la detección de marcas en base de datos, el mejor intento de la sesión, la autorización y la repetición segura de la finalización. `0004_training_calendar_adherence.test.sql` cubre RLS del calendario, tipos de día, enlace con sesiones, finalización automática, adherencia, racha y reprogramación.
 
 ### Navegador
 
@@ -124,7 +134,7 @@ La suite `web/tests/e2e` comprueba que la pantalla de acceso se representa corre
 - XP idempotente.
 - RPC inaccesibles para `anon`.
 
-Las pruebas pgTAP residen en `supabase/tests`: `0001` cubre el aislamiento del núcleo de rutinas y sesiones, y `0002` cubre privacidad social, likes, preguntas, notificaciones y gamificación. Ambas usan transacciones con `ROLLBACK`.
+Las pruebas pgTAP residen en `supabase/tests`: `0001` cubre el aislamiento del núcleo de rutinas y sesiones, `0002` cubre privacidad social, likes, preguntas, notificaciones y gamificación, `0003` cubre marcas desde entrenamientos y `0004` calendario/adherencia. Todas usan transacciones con `ROLLBACK`.
 
 ### Accesibilidad
 

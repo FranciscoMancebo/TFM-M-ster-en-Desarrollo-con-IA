@@ -35,6 +35,7 @@ El proyecto sigue entregas verticales: cada incremento incorpora interfaz, regla
 | Notificaciones y logros | Implementada | migración 015, consola y celebraciones globales |
 | Español/inglés | Implementada | `i18n.tsx` y preferencia persistida |
 | Entrenador por reglas | Implementada | `coach-assistant.tsx` |
+| Calendario y adherencia | Implementada | migración `202609280002`, `training-calendar.tsx` y pruebas de fechas |
 | Suite automatizada inicial | Implementada | Vitest, Playwright y pgTAP |
 | Suite funcional/E2E completa | En curso | faltan sesiones, rutinas e importación |
 | Evaluación con usuarios | Pendiente | protocolo definido |
@@ -74,6 +75,7 @@ El proyecto sigue entregas verticales: cada incremento incorpora interfaz, regla
 - enciclopedia por secciones;
 - variantes técnicas;
 - registro de marcas desde gráfico;
+- detección automática de nuevas marcas al finalizar sesiones;
 - evolución fechada;
 - entrenador contextual.
 
@@ -89,6 +91,10 @@ El proyecto sigue entregas verticales: cada incremento incorpora interfaz, regla
 
 ### Incremento F — Adherencia e internacionalización
 
+- calendario semanal y mensual;
+- planificación, reprogramación y estados por fecha;
+- descansos, competiciones y sesiones libres;
+- porcentajes, rachas y semanas perfectas;
 - notificaciones;
 - XP y nivel de cuenta;
 - logros;
@@ -120,7 +126,6 @@ El proyecto sigue entregas verticales: cada incremento incorpora interfaz, regla
 - exportación y borrado autoservicio;
 - paginación;
 - recuperación de contraseña;
-- detección/confirmación automática de marcas desde sesiones;
 - reordenación accesible de ejercicios;
 - estados offline acotados.
 
