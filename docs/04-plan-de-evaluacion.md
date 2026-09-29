@@ -128,15 +128,15 @@ Casos unitarios automatizados:
 - límites semanales/mensuales, desplazamiento de periodos y rejilla mensual estable de 42 días.
 - fases de acumulación, intensificación y descarga, progresión porcentual, límites y preservación de cargas absolutas.
 
-La suite se encuentra en `web/tests/unit` y se ejecuta con `npm.cmd run test`. Incluye la detección no repetitiva de logros y subidas de nivel, la fórmula Epley, las condiciones del aviso de rendimiento y casos positivos, vacíos y de exclusión para las cinco estadísticas avanzadas.
+La suite se encuentra en `web/tests/unit` y se ejecuta con `npm.cmd run test`. Incluye la detección no repetitiva de logros y subidas de nivel, la clasificación de hitos visuales de nivel 5/10, la agrupación y selección de recompensas, los límites de edad/peso y mínimas RFEH, la fórmula Epley, las condiciones del aviso de rendimiento y casos positivos, vacíos y de exclusión para las cinco estadísticas avanzadas.
 
-La prueba pgTAP `0003_workout_personal_bests.test.sql` conserva la compatibilidad de la detección canónica. `0004_training_calendar_adherence.test.sql` cubre RLS del calendario, tipos de día, enlace con sesiones, finalización automática, adherencia, racha y reprogramación. `0005_performance_records_recovery.test.sql` cubre confirmación, rangos de repeticiones, estimación, separación de variantes, sensaciones, planificación frente a ejecución y RLS. `0006_account_privacy_pagination.test.sql` valida el aislamiento de la exportación, la exclusión de credenciales internas, el borrado confirmado y páginas estables de comunidad y notificaciones.
+La prueba pgTAP `0003_workout_personal_bests.test.sql` conserva la compatibilidad de la detección canónica. `0004_training_calendar_adherence.test.sql` cubre RLS del calendario, tipos de día, enlace con sesiones, finalización automática, adherencia, racha y reprogramación. `0005_performance_records_recovery.test.sql` cubre confirmación, rangos de repeticiones, estimación, separación de variantes, sensaciones, planificación frente a ejecución y RLS. `0006_account_privacy_pagination.test.sql` valida el aislamiento de la exportación, la exclusión de credenciales internas, el borrado confirmado y páginas estables de comunidad y notificaciones. `0007_profile_level_rewards.test.sql` comprueba niveles mínimos, dominios permitidos, privacidad pública y exportación de recompensas. `0008_cosmetic_rewards.test.sql` valida bloqueo, equipamiento, sustitución, perfil público y exportación de cosméticos de nivel y categoría. `0009_competition_profile.test.sql` comprueba persistencia, restricciones y exportación de los datos federativos.
 
 ### Navegador
 
 La suite `web/tests/e2e` comprueba la pantalla de acceso y el cambio entre inicio de sesión y alta sin depender de datos remotos. Cuando están definidas `E2E_SUPABASE_URL`, `E2E_SUPABASE_PUBLISHABLE_KEY` y `E2E_SUPABASE_SERVICE_ROLE_KEY`, añade un recorrido autenticado real: crea un atleta aislado, prepara una rutina de una serie, inicia sesión, completa la sesión, confirma la marca detectada, verifica `exercise_records` y `lift_records`, y elimina el usuario en `finally`. Sin esas credenciales el caso remoto se marca explícitamente como omitido.
 
-El mismo recorrido descarga y valida la exportación JSON, comprueba que la comunidad entrega un máximo de ocho rutinas y carga la página siguiente. Otro E2E elimina una cuenta efímera desde Perfil y verifica que desaparece de Supabase Auth. El acceso cubre también orden de tabulación y apertura del formulario de recuperación.
+El mismo recorrido abre el baremo RFEH del perfil y verifica la mínima calculada y su advertencia oficial; después eleva temporalmente la cuenta de prueba al nivel 10, equipa un cosmético validado en servidor, desbloquea un espacio multimedia y un enlace social, comprueba su persistencia dentro de la exportación JSON, verifica que la comunidad entrega un máximo de ocho rutinas y carga la página siguiente. Otro E2E elimina una cuenta efímera desde Perfil y verifica que desaparece de Supabase Auth. El acceso cubre también orden de tabulación y apertura del formulario de recuperación.
 
 La auditoría automática de contraste calcula luminancia relativa y ratio WCAG para texto principal, texto secundario, enlaces, señal sobre fondo oscuro y acciones destructivas. El build informa el total cliente y los ocho chunks mayores; el presupuesto por archivo es 500 kB bruto y 180 kB gzip.
 
@@ -153,7 +153,7 @@ La auditoría automática de contraste calcula luminancia relativa y ratio WCAG 
 - XP idempotente.
 - RPC inaccesibles para `anon`.
 
-Las pruebas pgTAP residen en `supabase/tests`: `0001` cubre el aislamiento del núcleo de rutinas y sesiones, `0002` privacidad social y gamificación, `0003` marcas canónicas, `0004` calendario/adherencia, `0005` rendimiento, recuperación y récords por ejercicio, y `0006` privacidad de cuenta y paginación. Todas usan transacciones con `ROLLBACK`.
+Las pruebas pgTAP residen en `supabase/tests`: `0001` cubre el aislamiento del núcleo de rutinas y sesiones, `0002` privacidad social y gamificación, `0003` marcas canónicas, `0004` calendario/adherencia, `0005` rendimiento, recuperación y récords por ejercicio, `0006` privacidad de cuenta y paginación, `0007` recompensas multimedia/sociales, `0008` cosméticos de nivel y categoría, y `0009` datos federativos del perfil. Todas usan transacciones con `ROLLBACK`.
 
 ### Accesibilidad
 

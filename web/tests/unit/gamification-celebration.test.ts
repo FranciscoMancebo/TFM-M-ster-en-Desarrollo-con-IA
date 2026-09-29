@@ -26,6 +26,7 @@ function progress(level: number, achievements: Achievement[]): GamificationProgr
     unlockedCount: achievements.filter((item) => item.unlockedAt).length,
     achievements,
     recentEvents: [],
+    rewards: [],
   };
 }
 

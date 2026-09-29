@@ -126,6 +126,20 @@ La identidad efectiva procede de `auth.uid()`. Un identificador enviado desde el
 - **RF-097:** permitir saltar al contenido, recorrer acciones por teclado, distinguir el foco y respetar la preferencia de movimiento reducido.
 - **RF-098:** comprobar que los pares de color principales satisfacen WCAG AA para texto normal.
 - **RF-099:** dividir en chunks las secciones pesadas y hacer fallar la validación cuando un chunk supere el presupuesto documentado.
+- **RF-100:** diferenciar el nivel deportivo, que adapta el entrenamiento, del nivel de cuenta, que desbloquea recompensas sin alterar cargas ni recomendaciones.
+- **RF-101:** ofrecer tres espacios multimedia desbloqueados en los niveles de cuenta 3, 6 y 9, limitados a imágenes HTTPS directas o vídeos válidos de YouTube.
+- **RF-102:** ofrecer hasta cuatro enlaces sociales desbloqueados en los niveles 2, 4, 6 y 8, validando que la URL HTTPS corresponda con la red declarada.
+- **RF-103:** permitir ocultar de forma independiente la galería y los enlaces sociales del perfil público, manteniendo sus datos privados accesibles al propietario y en su exportación.
+- **RF-104:** desbloquear al menos un color, icono, título u otro cosmético pequeño en cada nivel de cuenta entre el 2 y el 20.
+- **RF-105:** conceder una recompensa visual destacada cada cinco niveles y una insignia de prestigio con celebración exclusiva cada diez niveles.
+- **RF-106:** asociar recompensas permanentes a hitos verificables de constancia, volumen, técnica, competición, comunidad y progreso.
+- **RF-107:** permitir equipar y retirar de forma independiente color, icono, marco, título, insignia y celebración, validando el desbloqueo en servidor.
+- **RF-108:** mostrar en el perfil público solo los cosméticos equipados y conservar la selección en la exportación personal.
+- **RF-109:** solicitar el año de nacimiento y la categoría de competición masculina o femenina, explicando que la edad federativa se calcula por año natural.
+- **RF-110:** asignar la categoría de peso vigente para cada grupo de edad y calcular el total de referencia como arrancada más dos tiempos.
+- **RF-111:** comparar el total con las mínimas nacionales RFEH 2026 derivadas de los puntos élite exigidos para Sub-15, Sub-17, Júnior y Absoluto.
+- **RF-112:** mostrar todas las categorías de edad simultáneamente aplicables, su mínima, diferencia y estado de cumplimiento.
+- **RF-113:** abrir desde el estado un modal que explique baremos, fuentes y requisitos adicionales, sin presentar la estimación como clasificación oficial.
 
 ## 3. Historias prioritarias y aceptación
 
@@ -136,7 +150,7 @@ Como atleta nuevo, quiero indicar experiencia, disponibilidad y referencias para
 **Aceptación:**
 
 - Las marcas son opcionales y cada una admite «Lo desconozco».
-- No se completa la configuración sin días, altura, peso, experiencia y un objetivo.
+- No se completa la configuración sin días, altura, peso, año de nacimiento, categoría de competición, experiencia y un objetivo.
 - El nivel queda guardado y puede recalcularse al cambiar datos.
 - Una marca ausente nunca se sustituye por una cifra ficticia.
 

@@ -35,6 +35,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { LanguageToggle } from '@/components/language-toggle';
 import { NotificationCenter } from '@/components/notification-center';
+import { CompetitionEligibility } from '@/components/competition-eligibility';
 import { GamificationCelebration, requestGamificationCheck } from '@/components/gamification-celebration';
 import { WorkoutFeedbackDialog } from '@/components/workout-feedback-dialog';
 import {
@@ -44,11 +45,13 @@ import {
 import { I18nProvider, translateKnownText, useI18n } from '@/lib/i18n';
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { determineAthleteLevel, liftDefinitions, latestLiftRecords, todayForInput } from '@/lib/workout/lifts';
+import { RFEH_STANDARD_YEAR } from '@/lib/workout/competition-standards';
 import { workoutRepository } from '@/lib/workout/repository';
 import { detectPerformanceDrop } from '@/lib/workout/performance';
 import {
   freshExercises,
   type CompletedWorkout,
+  type CompetitionSex,
   type Exercise,
   type ExerciseLibraryItem,
   type LiftRecord,
@@ -73,6 +76,7 @@ const TrainingCalendar = lazy(() => import('@/components/training-calendar').the
 const AdvancedStatistics = lazy(() => import('@/components/advanced-statistics').then((module) => ({ default: module.AdvancedStatistics })));
 const LiftProgress = lazy(() => import('@/components/lift-progress').then((module) => ({ default: module.LiftProgress })));
 const PerformanceRecords = lazy(() => import('@/components/performance-records').then((module) => ({ default: module.PerformanceRecords })));
+const ProfileShowcaseEditor = lazy(() => import('@/components/profile-showcase-editor').then((module) => ({ default: module.ProfileShowcaseEditor })));
 
 type Screen = 'today' | 'session' | 'summary';
 type AppView = 'today' | 'calendar' | 'routines' | 'coach' | 'encyclopedia' | 'history' | 'achievements' | 'profile';
@@ -222,6 +226,8 @@ function InitialSetup({
     : step === 1
       ? draft.heightCm !== null && draft.heightCm >= 100 && draft.heightCm <= 250
         && draft.weightKg !== null && draft.weightKg >= 30 && draft.weightKg <= 350
+        && draft.birthYear !== null && draft.birthYear >= 1900 && draft.birthYear <= RFEH_STANDARD_YEAR - 10
+        && draft.competitionSex !== null
       : step === 2
         ? draft.weightliftingExperience !== null
         : step === 3 || draft.goals.length > 0;
@@ -295,10 +301,12 @@ function InitialSetup({
           {step === 1 && <>
             <p className="eyebrow">{tr('Tu referencia', 'Your baseline')}</p>
             <h1>{tr('Cuéntanos tus medidas actuales', 'Tell us your current measurements')}</h1>
-            <p>{tr('Más adelante combinaremos estos datos con tus marcas para estimar tu nivel de forma objetiva.', 'We will combine these with your lift results to estimate your level objectively.')}</p>
+            <p>{tr('Combinaremos estos datos con tus marcas para estimar tu nivel y comparar tu total con las referencias oficiales de competición.', 'We will combine these details with your lift results to estimate your level and compare your total with official competition references.')}</p>
             <div className="measurement-grid">
               <label><span>{tr('Altura', 'Height')}</span><div><input required type="number" min={100} max={250} step="0.1" value={draft.heightCm ?? ''} onChange={(event) => setDraft({ ...draft, heightCm: event.target.value ? Number(event.target.value) : null })} /><small>cm</small></div></label>
               <label><span>{tr('Peso', 'Weight')}</span><div><input required type="number" min={30} max={350} step="0.1" value={draft.weightKg ?? ''} onChange={(event) => setDraft({ ...draft, weightKg: event.target.value ? Number(event.target.value) : null })} /><small>kg</small></div></label>
+              <label><span>{tr('Año de nacimiento', 'Birth year')}</span><div><input required type="number" min={1900} max={RFEH_STANDARD_YEAR - 10} value={draft.birthYear ?? ''} onChange={(event) => setDraft({ ...draft, birthYear: event.target.value ? Number(event.target.value) : null })} /><small>{tr('año', 'year')}</small></div></label>
+              <label><span>{tr('Categoría de competición', 'Competition category')}</span><select required value={draft.competitionSex ?? ''} onChange={(event) => setDraft({ ...draft, competitionSex: event.target.value as CompetitionSex })}><option value="" disabled>{tr('Selecciona una categoría', 'Select a category')}</option><option value="female">{tr('Femenina', 'Female')}</option><option value="male">{tr('Masculina', 'Male')}</option></select><small className="field-help">{tr('La RFEH publica baremos distintos para ambas categorías.', 'The RFEH publishes separate standards for both categories.')}</small></label>
             </div>
           </>}
 
@@ -1063,6 +1071,7 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
               <h2>{profile.displayName}</h2>
               <p>{user.email}</p>
               <span className={profile.profileVisibility === 'public' ? 'profile-visibility-badge is-public' : 'profile-visibility-badge'}>{profile.profileVisibility === 'public' ? <><Eye aria-hidden="true" />{tr('Perfil público', 'Public profile')}</> : <><LockKeyhole aria-hidden="true" />{tr('Perfil privado', 'Private profile')}</>}</span>
+              <CompetitionEligibility profile={profile} records={liftRecords} />
               <label className="file-button profile-photo-button"><Camera aria-hidden="true" size={17} />{tr('Cambiar imagen', 'Change picture')}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void chooseProfileAvatar(event)} /></label>
               <Button variant="outline" onClick={() => getSupabaseClient().auth.signOut()}>{tr('Cerrar sesión', 'Sign out')}</Button>
             </aside>
@@ -1087,6 +1096,15 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
               <label>
                 <span>{tr('Peso actual', 'Current weight')}</span>
                 <div className="unit-input"><input required type="number" min={30} max={350} step="0.1" value={profile.weightKg ?? ''} onChange={(event) => setProfile({ ...profile, weightKg: event.target.value ? Number(event.target.value) : null })} /><small>kg</small></div>
+              </label>
+              <label>
+                <span>{tr('Año de nacimiento', 'Birth year')}</span>
+                <input required type="number" min={1900} max={RFEH_STANDARD_YEAR - 10} value={profile.birthYear ?? ''} onChange={(event) => setProfile({ ...profile, birthYear: event.target.value ? Number(event.target.value) : null })} />
+                <small>{tr('La edad federativa se calcula por año natural.', 'Federation age is calculated by calendar year.')}</small>
+              </label>
+              <label>
+                <span>{tr('Categoría de competición', 'Competition category')}</span>
+                <select required value={profile.competitionSex ?? ''} onChange={(event) => setProfile({ ...profile, competitionSex: event.target.value as CompetitionSex })}><option value="" disabled>{tr('Selecciona una categoría', 'Select a category')}</option><option value="female">{tr('Femenina', 'Female')}</option><option value="male">{tr('Masculina', 'Male')}</option></select>
               </label>
               <label className="profile-wide">
                 <span>{tr('Experiencia en halterofilia', 'Weightlifting experience')}</span>
@@ -1115,9 +1133,12 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
                   <label htmlFor="privacy-training-data" className={profile.showTrainingData ? 'is-enabled' : ''}><Checkbox id="privacy-training-data" checked={profile.showTrainingData} onCheckedChange={(checked) => setProfile({ ...profile, showTrainingData: checked })} /><span><strong>{tr('Datos de entrenamiento', 'Training data')}</strong><small>{tr('Objetivos, frecuencia, altura, peso y experiencia.', 'Goals, frequency, height, weight and experience.')}</small></span></label>
                   <label htmlFor="privacy-progress" className={profile.showProgress ? 'is-enabled' : ''}><Checkbox id="privacy-progress" checked={profile.showProgress} onCheckedChange={(checked) => setProfile({ ...profile, showProgress: checked })} /><span><strong>{tr('Progresión de marcas', 'Lift progression')}</strong><small>{tr('Histórico fechado de sentadillas, arrancada y dos tiempos.', 'Dated history for squats, snatch and clean and jerk.')}</small></span></label>
                   <label htmlFor="privacy-routines" className={profile.showPublicRoutines ? 'is-enabled' : ''}><Checkbox id="privacy-routines" checked={profile.showPublicRoutines} onCheckedChange={(checked) => setProfile({ ...profile, showPublicRoutines: checked })} /><span><strong>{tr('Rutinas públicas', 'Public routines')}</strong><small>{tr('Solo aparecerán las rutinas que hayas publicado.', 'Only routines you have published will appear.')}</small></span></label>
+                  <label htmlFor="privacy-media" className={profile.showMedia ? 'is-enabled' : ''}><Checkbox id="privacy-media" checked={profile.showMedia} onCheckedChange={(checked) => setProfile({ ...profile, showMedia: checked })} /><span><strong>{tr('Galería multimedia', 'Media gallery')}</strong><small>{tr('Muestra los elementos desbloqueados que hayas configurado.', 'Show the unlocked items you have configured.')}</small></span></label>
+                  <label htmlFor="privacy-social" className={profile.showSocialLinks ? 'is-enabled' : ''}><Checkbox id="privacy-social" checked={profile.showSocialLinks} onCheckedChange={(checked) => setProfile({ ...profile, showSocialLinks: checked })} /><span><strong>{tr('Redes sociales', 'Social links')}</strong><small>{tr('Comparte únicamente los enlaces que hayas guardado.', 'Share only the links you have saved.')}</small></span></label>
                 </div>
                 {profile.profileVisibility === 'private' && <p><LockKeyhole aria-hidden="true" />{tr('Estos permisos quedan guardados, pero nadie verá el perfil hasta que lo marques como público.', 'These permissions are saved, but nobody can view the profile until you make it public.')}</p>}
               </section>
+              <ProfileShowcaseEditor onError={setDataError} />
               <section className="profile-wide account-data-settings" aria-labelledby="account-data-title">
                 <div><strong id="account-data-title">{tr('Tus datos y tu cuenta', 'Your data and account')}</strong><p>{tr('Descarga una copia legible de tus datos o elimina definitivamente la cuenta.', 'Download a readable copy of your data or permanently delete the account.')}</p></div>
                 <div><Button type="button" variant="outline" disabled={exportingData} onClick={() => void exportAccountData()}><Download aria-hidden="true" />{exportingData ? tr('Preparando…', 'Preparing…') : tr('Exportar datos', 'Export data')}</Button><Button type="button" variant="outline" className="danger-action" onClick={() => setDeleteAccountOpen(true)}><Trash2 aria-hidden="true" />{tr('Eliminar cuenta', 'Delete account')}</Button></div>

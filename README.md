@@ -22,6 +22,7 @@ Capacidades disponibles:
 - registro de sesiones, RPE por serie, carga planificada frente a realizada y cierre con dolor, fatiga y sensación general;
 - avisos cuando el rendimiento relativo desciende durante tres sesiones consecutivas;
 - estadísticas de volumen semanal por ejercicio, intensidad relativa, distribución del trabajo, total olímpico y fuerza respecto al peso corporal;
+- comparación orientativa del total olímpico con las mínimas RFEH 2026 por edad, categoría de competición y peso, con desglose normativo;
 - calendario semanal y mensual para planificar, reprogramar y clasificar entrenamientos, descansos, competiciones y sesiones libres;
 - adherencia semanal y mensual, racha de entrenamientos, días completados y semanas perfectas;
 - historial y gráficos fechados para sentadilla, arrancada, sentadilla frontal y dos tiempos;
@@ -29,6 +30,8 @@ Capacidades disponibles:
 - comunidad con filtros, likes, preguntas al autor y perfiles públicos configurables;
 - notificaciones por likes y preguntas;
 - experiencia, niveles de cuenta, logros desbloqueables y celebraciones animadas;
+- recompensas de perfil por nivel: tres espacios multimedia y cuatro enlaces sociales con desbloqueo progresivo;
+- cosméticos equipables en cada nivel, recompensas mayores cada cinco niveles, prestigio cada diez y colecciones por constancia, volumen, técnica, competición, comunidad y progreso;
 - entrenador conversacional gratuito basado en reglas y en el contexto almacenado;
 - interfaz bilingüe en español e inglés;
 - exportación JSON y eliminación definitiva de la cuenta por el propio usuario;

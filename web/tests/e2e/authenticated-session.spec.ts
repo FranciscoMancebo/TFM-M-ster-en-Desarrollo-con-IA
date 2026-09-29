@@ -68,7 +68,43 @@ test('an authenticated athlete completes a session and confirms a detected recor
       return data ? `${data.weight_kg}:${data.source}` : null;
     }).toBe('60:workout');
 
+    const { error: rewardLevelError } = await admin.from('athlete_progress')
+      .update({ account_level: 10, total_xp: 20_250 })
+      .eq('user_id', userId!);
+    if (rewardLevelError) throw rewardLevelError;
+    const { error: categoryRewardError } = await admin.from('user_achievements')
+      .insert({ user_id: userId!, achievement_code: 'ten_likes' });
+    if (categoryRewardError) throw categoryRewardError;
+
+    await page.getByRole('button', { name: /Logros|Achievements/, exact: true }).first().click();
+    const limeReward = page.locator('.reward-card').filter({ hasText: /Lima inicial|Starter lime/ });
+    await expect(limeReward).toContainText(/Nivel 2|Level 2/i);
+    await limeReward.getByRole('button', { name: /Equipar|Equip/, exact: true }).click();
+    await expect(limeReward.getByRole('button')).toContainText(/Equipado|Equipped/);
+    const communityReward = page.locator('.reward-card').filter({ hasText: /Ovación|Applause/ });
+    await communityReward.getByRole('button', { name: /Equipar|Equip/, exact: true }).click();
+    await expect(communityReward.getByRole('button')).toContainText(/Equipado|Equipped/);
+    await expect(limeReward.getByRole('button')).toContainText(/Equipar|Equip/);
+
     await page.getByRole('button', { name: /Perfil|Profile/, exact: true }).first().click();
+    await page.locator('.competition-eligibility-card').click();
+    await expect(page.getByRole('heading', { name: /Referencia para Campeonatos de España|Spanish Championship reference/ })).toBeVisible();
+    await expect(page.locator('.competition-standard-list')).toContainText('258 kg');
+    await expect(page.locator('.competition-official-note')).toContainText(/competición validada|validated competition/);
+    await page.keyboard.press('Escape');
+    const firstMediaSlot = page.locator('.profile-media-editor-grid .profile-reward-slot').first();
+    await expect(firstMediaSlot).toContainText(/Desbloqueado|Unlocked/);
+    await firstMediaSlot.getByLabel('URL').fill('https://cdn.example.test/haltero-e2e.webp');
+    await firstMediaSlot.getByLabel(/Título|Title/).fill('Marca E2E');
+    await firstMediaSlot.getByRole('button', { name: /Guardar|Save/ }).click();
+    await expect(firstMediaSlot.getByText(/Guardado|Saved/)).toBeVisible();
+
+    const firstSocialSlot = page.locator('.profile-social-editor-grid .profile-reward-slot').first();
+    await expect(firstSocialSlot).toContainText(/Desbloqueado|Unlocked/);
+    await firstSocialSlot.getByLabel('URL').fill('https://instagram.com/haltero-e2e');
+    await firstSocialSlot.getByRole('button', { name: /Guardar|Save/ }).click();
+    await expect(firstSocialSlot.getByText(/Guardado|Saved/)).toBeVisible();
+
     const downloadPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: /Exportar datos|Export data/ }).click();
     const download = await downloadPromise;
@@ -79,6 +115,10 @@ test('an authenticated athlete completes a session and confirms a detected recor
     const exported = JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>;
     expect(exported).toMatchObject({ schemaVersion: 1 });
     expect(Array.isArray(exported.workoutSessions)).toBe(true);
+    expect((exported.profileMedia as unknown[]).length).toBe(1);
+    expect((exported.socialLinks as unknown[]).length).toBe(1);
+    expect(exported.rewardPreferences).toMatchObject({ color_reward: 'community_applause_color' });
+    expect(exported.profile).toMatchObject({ birth_year: 1995, competition_sex: 'male' });
     const exportedAccount = exported.account as Record<string, unknown>;
     expect(exportedAccount).not.toHaveProperty('encrypted_password');
     expect(exportedAccount).not.toHaveProperty('recovery_token');
@@ -142,6 +182,8 @@ async function seedSingleSetWorkout(admin: SupabaseClient, userId: string) {
     training_days_per_week: 1,
     height_cm: 175,
     weight_kg: 80,
+    birth_year: 1995,
+    competition_sex: 'male',
     weightlifting_experience: 'under_6_months',
     goals: ['strength'],
     level: 'beginner',
@@ -149,6 +191,12 @@ async function seedSingleSetWorkout(admin: SupabaseClient, userId: string) {
     confirm_detected_records: true,
   }).eq('user_id', userId);
   if (profileError) throw profileError;
+
+  const { error: liftError } = await admin.from('lift_records').insert([
+    { user_id: userId, lift: 'snatch', weight_kg: 75, achieved_on: '2026-09-01', source: 'manual' },
+    { user_id: userId, lift: 'clean_and_jerk', weight_kg: 90, achieved_on: '2026-09-01', source: 'manual' },
+  ]);
+  if (liftError) throw liftError;
 
   const { data: assignment, error: assignmentError } = await admin.from('routine_assignments')
     .select('id,routine_version_id')

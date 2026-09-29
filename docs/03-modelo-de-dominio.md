@@ -21,6 +21,9 @@
 - **Notificación:** aviso persistente para el propietario.
 - **Evento de experiencia:** concesión idempotente de XP.
 - **Logro:** umbral definido por una métrica de actividad.
+- **Recompensa de perfil:** capacidad cosmética desbloqueada por nivel de cuenta que no modifica la programación deportiva.
+- **Elemento multimedia:** imagen HTTPS o vídeo de YouTube mostrado en uno de los tres espacios del perfil.
+- **Enlace social:** URL HTTPS validada para una red declarada y situada en uno de cuatro espacios.
 
 ## 2. Relaciones
 
@@ -47,6 +50,8 @@ erDiagram
     AUTH_USER ||--|| ATHLETE_PROGRESS : acumula
     AUTH_USER ||--o{ EXPERIENCE_EVENT : obtiene
     AUTH_USER ||--o{ USER_ACHIEVEMENT : desbloquea
+    AUTH_USER ||--o{ PROFILE_MEDIA_ITEM : muestra
+    AUTH_USER ||--o{ PROFILE_SOCIAL_LINK : enlaza
     ACHIEVEMENT_DEFINITION ||--o{ USER_ACHIEVEMENT : define
     ROUTINE_VERSION o|--o{ ROUTINE : origen
 ```
@@ -62,7 +67,7 @@ Identidad deportiva y controles de privacidad:
 - objetivos y configuración completada;
 - idioma preferido;
 - visibilidad general;
-- permisos para datos, progreso y rutinas.
+- permisos para datos, progreso, rutinas, galería multimedia y enlaces sociales.
 
 La lectura directa pertenece solo al propietario. La vista pública es una proyección RPC.
 
@@ -127,6 +132,14 @@ El volumen planificado suma `carga planificada × repeticiones planificadas`; el
 
 Las estadísticas avanzadas son proyecciones derivadas, no nuevas fuentes de verdad. El volumen semanal agrupa series satisfactorias por ejercicio; la intensidad relativa pondera cada porcentaje por repeticiones; la distribución cuenta series para conservar ejercicios de movilidad con 0 kg. El total olímpico combina registros canónicos de arrancada y dos tiempos, y las relaciones corporales usan el peso actual del perfil.
 
+### Referencia federativa
+
+`profiles.birth_year` permite obtener la edad federativa de la temporada por año natural; `competition_sex` elige la tabla oficial. El peso actual determina la categoría dentro de cada grupo de edad. El total usado por la proyección suma la última referencia de arrancada y dos tiempos.
+
+La proyección puede producir varias evaluaciones para una misma persona: Sub-15 (13–15), Sub-17 (13–17), Júnior (13–20) y Absoluto (desde 15). Cada resultado conserva grupo, categoría de peso, puntos élite exigidos, mínima calculada, total actual y diferencia. La categoría Máster, desde 35 años, queda fuera porque dispone de normativa específica.
+
+Esta entidad es informativa y no se persiste como certificación. Las marcas personales no demuestran que el total se haya realizado en una competición validada ni dentro de los siete meses reglamentarios.
+
 ### `training_calendar_events`
 
 Representa un único evento por usuario y fecha. Distingue `workout`, `rest`, `competition` y `free_session`, con estado `planned`, `completed` o `skipped`. Un entrenamiento referencia un día de la rutina activa y puede quedar enlazado de forma única a su sesión real. `rescheduled_from` conserva la fecha original al moverlo.
@@ -147,6 +160,16 @@ Incluye destinatario, actor, tipo, versión, pregunta opcional, fecha de lectura
 - `experience_events`: libro mayor inmutable e idempotente de XP.
 - `athlete_progress`: total y nivel materializados.
 - `user_achievements`: logros desbloqueados y fecha.
+- `profile_reward_definitions`: catálogo bilingüe de cosméticos, categoría, tipo y requisito único de nivel o logro.
+- `profile_reward_preferences`: color, icono, marco, título, insignia y celebración equipados por el atleta.
+
+El catálogo entrega un detalle cosmético en cada nivel 2–20, marcos destacados en 5 y 15, e insignia y celebración de prestigio en 10 y 20. Las recompensas de categoría proceden de métricas reales: rachas y semanas perfectas, volumen movido, variedad técnica, competiciones completadas, interacción comunitaria y mejoras del total olímpico. Equipar no concede XP ni modifica la programación deportiva.
+
+### `profile_media_items` y `profile_social_links`
+
+Los elementos multimedia ocupan tres posiciones únicas por usuario y admiten imágenes HTTPS directas JPG, PNG o WEBP y vídeos de YouTube. Los niveles mínimos son 3, 6 y 9. Los enlaces sociales ocupan cuatro posiciones, no permiten repetir red y se habilitan en los niveles 2, 4, 6 y 8.
+
+Las RPC de escritura comprueban el nivel materializado en servidor y validan URL, dominio y longitudes. RLS reserva la lectura directa al propietario; la proyección pública respeta `show_media`, `show_social_links` y la visibilidad general del perfil. Ambos conjuntos se eliminan en cascada con la cuenta y forman parte de la exportación personal.
 
 ## 4. Cálculos
 

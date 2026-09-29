@@ -20,6 +20,10 @@ import type {
   TrainingSet,
   UserProfile,
   PublicAthleteProfile,
+  ProfileMediaItem,
+  ProfileShowcase,
+  ProfileSocialLink,
+  ProfileReward,
   AppNotification,
   GamificationProgress,
   WorkoutPersonalBest,
@@ -84,6 +88,26 @@ function referenceLiftFromSlug(slug: string): LiftType | undefined {
 
 function optionalText(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+function mapProfileMediaItem(item: Record<string, unknown>): ProfileMediaItem {
+  return {
+    id: String(item.id),
+    slot: Number(item.slot),
+    mediaType: (item.mediaType ?? item.media_type) as ProfileMediaItem['mediaType'],
+    url: optionalText(item.url) ?? '',
+    title: optionalText(item.title) ?? '',
+    description: optionalText(item.description) ?? '',
+  };
+}
+
+function mapProfileSocialLink(link: Record<string, unknown>): ProfileSocialLink {
+  return {
+    id: String(link.id),
+    slot: Number(link.slot),
+    network: link.network as ProfileSocialLink['network'],
+    url: optionalText(link.url) ?? '',
+  };
 }
 
 type InitialExercise = {
@@ -153,7 +177,7 @@ export const workoutRepository = {
   async loadProfile(userId: string): Promise<UserProfile> {
     const { data, error } = await client()
       .from('profiles')
-      .select('user_id,display_name,bio,level,goals,training_days_per_week,height_cm,weight_kg,avatar_base64,onboarding_completed,weightlifting_experience,preferred_language,profile_visibility,show_training_data,show_progress,show_public_routines,confirm_detected_records')
+      .select('user_id,display_name,bio,level,goals,training_days_per_week,height_cm,weight_kg,birth_year,competition_sex,avatar_base64,onboarding_completed,weightlifting_experience,preferred_language,profile_visibility,show_training_data,show_progress,show_public_routines,show_media,show_social_links,confirm_detected_records')
       .eq('user_id', userId)
       .single();
     const profile = requireData(data, error);
@@ -166,6 +190,8 @@ export const workoutRepository = {
       trainingDaysPerWeek: profile.training_days_per_week,
       heightCm: profile.height_cm === null ? null : Number(profile.height_cm),
       weightKg: profile.weight_kg === null ? null : Number(profile.weight_kg),
+      birthYear: profile.birth_year === null ? null : Number(profile.birth_year),
+      competitionSex: profile.competition_sex,
       avatarBase64: profile.avatar_base64,
       onboardingCompleted: profile.onboarding_completed,
       weightliftingExperience: profile.weightlifting_experience,
@@ -174,6 +200,8 @@ export const workoutRepository = {
       showTrainingData: profile.show_training_data,
       showProgress: profile.show_progress,
       showPublicRoutines: profile.show_public_routines,
+      showMedia: profile.show_media,
+      showSocialLinks: profile.show_social_links,
       confirmDetectedRecords: profile.confirm_detected_records,
     };
   },
@@ -189,6 +217,8 @@ export const workoutRepository = {
         training_days_per_week: profile.trainingDaysPerWeek,
         height_cm: profile.heightCm,
         weight_kg: profile.weightKg,
+        birth_year: profile.birthYear,
+        competition_sex: profile.competitionSex,
         avatar_base64: profile.avatarBase64,
         onboarding_completed: profile.onboardingCompleted,
         weightlifting_experience: profile.weightliftingExperience,
@@ -197,6 +227,8 @@ export const workoutRepository = {
         show_training_data: profile.showTrainingData,
         show_progress: profile.showProgress,
         show_public_routines: profile.showPublicRoutines,
+        show_media: profile.showMedia,
+        show_social_links: profile.showSocialLinks,
         confirm_detected_records: profile.confirmDetectedRecords,
       })
       .eq('user_id', profile.userId);
@@ -223,6 +255,9 @@ export const workoutRepository = {
     const rank = (rankData ?? {}) as Record<string, unknown>;
     const rawLiftRecords = Array.isArray(profile.liftRecords) ? profile.liftRecords as Array<Record<string, unknown>> : [];
     const rawRoutines = Array.isArray(profile.routines) ? profile.routines as Array<Record<string, unknown>> : [];
+    const rawMedia = Array.isArray(profile.mediaItems) ? profile.mediaItems as Array<Record<string, unknown>> : [];
+    const rawSocialLinks = Array.isArray(profile.socialLinks) ? profile.socialLinks as Array<Record<string, unknown>> : [];
+    const rawProfileRewards = Array.isArray(profile.profileRewards) ? profile.profileRewards as Array<Record<string, unknown>> : [];
     return {
       userId: String(profile.userId),
       displayName: optionalText(profile.displayName) ?? 'Atleta',
@@ -236,6 +271,8 @@ export const workoutRepository = {
       trainingDataVisible: Boolean(profile.trainingDataVisible),
       progressVisible: Boolean(profile.progressVisible),
       routinesVisible: Boolean(profile.routinesVisible),
+      mediaVisible: Boolean(profile.mediaVisible),
+      socialLinksVisible: Boolean(profile.socialLinksVisible),
       goals: Array.isArray(profile.goals) ? profile.goals.filter((goal): goal is string => typeof goal === 'string') : [],
       trainingDaysPerWeek: profile.trainingDaysPerWeek === null ? null : Number(profile.trainingDaysPerWeek),
       heightCm: profile.heightCm === null ? null : Number(profile.heightCm),
@@ -261,7 +298,59 @@ export const workoutRepository = {
         likeCount: Number(routine.likeCount ?? 0),
         questionCount: Number(routine.questionCount ?? 0),
       })),
+      mediaItems: rawMedia.map(mapProfileMediaItem),
+      socialLinks: rawSocialLinks.map(mapProfileSocialLink),
+      profileRewards: rawProfileRewards.map((reward) => ({
+        code: String(reward.code),
+        rewardType: reward.rewardType as ProfileReward['rewardType'],
+        titleEs: optionalText(reward.titleEs) ?? '',
+        titleEn: optionalText(reward.titleEn) ?? '',
+        visualValue: optionalText(reward.visualValue) ?? '',
+      })),
     };
+  },
+
+  async loadProfileShowcase(): Promise<ProfileShowcase> {
+    const [{ data: media, error: mediaError }, { data: social, error: socialError }] = await Promise.all([
+      client().from('profile_media_items').select('id,slot,media_type,url,title,description').order('slot'),
+      client().from('profile_social_links').select('id,slot,network,url').order('slot'),
+    ]);
+    if (mediaError) throw new Error(mediaError.message);
+    if (socialError) throw new Error(socialError.message);
+    return {
+      mediaItems: (media ?? []).map((item) => mapProfileMediaItem(item as Record<string, unknown>)),
+      socialLinks: (social ?? []).map((link) => mapProfileSocialLink(link as Record<string, unknown>)),
+    };
+  },
+
+  async saveProfileMediaItem(item: Omit<ProfileMediaItem, 'id'>) {
+    const { error } = await client().rpc('save_profile_media_item', {
+      target_slot: item.slot,
+      target_media_type: item.mediaType,
+      target_url: item.url,
+      target_title: item.title,
+      target_description: item.description || null,
+    });
+    if (error) throw new Error(error.message);
+  },
+
+  async deleteProfileMediaItem(slot: number) {
+    const { error } = await client().rpc('delete_profile_media_item', { target_slot: slot });
+    if (error) throw new Error(error.message);
+  },
+
+  async saveProfileSocialLink(link: Omit<ProfileSocialLink, 'id'>) {
+    const { error } = await client().rpc('save_profile_social_link', {
+      target_slot: link.slot,
+      target_network: link.network,
+      target_url: link.url,
+    });
+    if (error) throw new Error(error.message);
+  },
+
+  async deleteProfileSocialLink(slot: number) {
+    const { error } = await client().rpc('delete_profile_social_link', { target_slot: slot });
+    if (error) throw new Error(error.message);
   },
 
   async loadNotifications(offset = 0, limit = 10): Promise<PageResult<AppNotification>> {
@@ -302,8 +391,12 @@ export const workoutRepository = {
   },
 
   async loadGamification(): Promise<GamificationProgress> {
-    const { data, error } = await client().rpc('my_gamification');
+    const [{ data, error }, { data: rewardData, error: rewardError }] = await Promise.all([
+      client().rpc('my_gamification'),
+      client().rpc('my_profile_rewards'),
+    ]);
     if (error) throw new Error(error.message);
+    if (rewardError) throw new Error(rewardError.message);
     const progress = requireData(data as Record<string, unknown> | null, null);
     const achievements = Array.isArray(progress.achievements) ? progress.achievements as Array<Record<string, unknown>> : [];
     const recentEvents = Array.isArray(progress.recentEvents) ? progress.recentEvents as Array<Record<string, unknown>> : [];
@@ -331,7 +424,31 @@ export const workoutRepository = {
         xp: Number(event.xp ?? 0),
         createdAt: String(event.createdAt),
       })),
+      rewards: (Array.isArray(rewardData) ? rewardData : []).map((reward: Record<string, unknown>) => ({
+        code: String(reward.code),
+        category: reward.category as ProfileReward['category'],
+        rewardType: reward.rewardType as ProfileReward['rewardType'],
+        titleEs: optionalText(reward.titleEs) ?? '',
+        titleEn: optionalText(reward.titleEn) ?? '',
+        descriptionEs: optionalText(reward.descriptionEs) ?? '',
+        descriptionEn: optionalText(reward.descriptionEn) ?? '',
+        visualValue: optionalText(reward.visualValue) ?? '',
+        requiredLevel: reward.requiredLevel === null ? null : Number(reward.requiredLevel),
+        achievementCode: optionalText(reward.achievementCode),
+        unlocked: Boolean(reward.unlocked),
+        equipped: Boolean(reward.equipped),
+      })),
     };
+  },
+
+  async equipProfileReward(code: string) {
+    const { error } = await client().rpc('equip_profile_reward', { target_code: code });
+    if (error) throw new Error(error.message);
+  },
+
+  async clearProfileReward(type: ProfileReward['rewardType']) {
+    const { error } = await client().rpc('clear_profile_reward', { target_type: type });
+    if (error) throw new Error(error.message);
   },
 
   async loadExerciseLibrary(): Promise<ExerciseLibraryItem[]> {

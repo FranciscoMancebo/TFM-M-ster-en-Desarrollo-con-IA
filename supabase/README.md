@@ -52,12 +52,12 @@ La clave `service_role` no se utiliza en el navegador.
 npx.cmd supabase db lint --linked
 ```
 
-Las pruebas pgTAP cubren el corte vertical y RLS (`0001`), comunidad, privacidad y gamificación (`0002`), detección canónica de marcas (`0003`), calendario/adherencia (`0004`), rendimiento y recuperación (`0005`), y privacidad de cuenta y paginación (`0006`). Se ejecutan con `npm.cmd run test:db` desde `web` cuando Docker Desktop puede iniciar la imagen `pg_prove`.
+Las pruebas pgTAP cubren el corte vertical y RLS (`0001`), comunidad, privacidad y gamificación (`0002`), detección canónica de marcas (`0003`), calendario/adherencia (`0004`), rendimiento y recuperación (`0005`), privacidad de cuenta y paginación (`0006`), recompensas multimedia/sociales (`0007`), cosméticos de nivel/categoría (`0008`) y datos federativos del perfil (`0009`). Se ejecutan con `npm.cmd run test:db` desde `web` cuando Docker Desktop puede iniciar la imagen `pg_prove`.
 
 ## Datos ficticios
 
 Las migraciones `202609240012` y `202609250001` crean diez identidades no interactivas, veinte rutinas públicas, progresiones fechadas, likes y preguntas. Sirven para la demostración y no representan usuarios reales.
 
-`202609290001_training_blocks.sql` materializa todas las semanas de las rutinas existentes, aplica fases y progresión a sus porcentajes, permite guardar semanas diferentes y conserva los bloques al importar una rutina pública. `202609290002_account_privacy_and_pagination.sql` incorpora exportación, borrado confirmado y páginas filtradas protegidas por autenticación/RLS. `202609290003_harden_account_export.sql` limita los datos de Auth exportables mediante una lista segura explícita.
+`202609290001_training_blocks.sql` materializa todas las semanas de las rutinas existentes, aplica fases y progresión a sus porcentajes, permite guardar semanas diferentes y conserva los bloques al importar una rutina pública. `202609290002_account_privacy_and_pagination.sql` incorpora exportación, borrado confirmado y páginas filtradas protegidas por autenticación/RLS. `202609290003_harden_account_export.sql` limita los datos de Auth exportables mediante una lista segura explícita. `202609290004_profile_level_rewards.sql` añade los espacios multimedia y sociales, sus niveles de desbloqueo, privacidad y validación en servidor. `202609290005_cosmetic_rewards.sql` añade el catálogo equipable, las preferencias, el prestigio 10/20 y las recompensas por constancia, volumen, técnica, competición, comunidad y progreso. `202609290006_competition_eligibility.sql` añade año de nacimiento y categoría federativa, con restricciones y datos de demostración.
 
 La guía completa está en [docs/08-guia-tecnica-y-operacion.md](../docs/08-guia-tecnica-y-operacion.md).

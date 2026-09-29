@@ -1,15 +1,16 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import NextImage from 'next/image';
-import { CalendarDays, Download, Dumbbell, EyeOff, Heart, MessageCircle, Trophy } from 'lucide-react';
+import { AtSign, CalendarDays, Download, Dumbbell, ExternalLink, EyeOff, Flame, Globe2, Heart, Link2, Medal, MessageCircle, Music2, Play, Sparkles, Star, TrendingUp, Trophy, Zap } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { translateKnownText, useI18n } from '@/lib/i18n';
 import { liftDefinitions, latestLiftRecords } from '@/lib/workout/lifts';
-import type { AthleteLevel, LiftType, PublicAthleteProfile, RoutineFocus, WeightliftingExperience } from '@/lib/workout/types';
+import { socialNetworkLabels, youtubeEmbedUrl } from '@/lib/profile-showcase';
+import type { AthleteLevel, EquippedProfileReward, LiftType, PublicAthleteProfile, RoutineFocus, WeightliftingExperience } from '@/lib/workout/types';
 
 const levelNames: Record<AthleteLevel, [string, string]> = {
   starter: ['Iniciación', 'Starter'],
@@ -60,17 +61,36 @@ export function PublicAthleteProfileDialog({
     weight: record.weightKg,
   }));
   const chartConfig = { weight: { label: tr('Marca', 'Result'), color: '#7f881e' } };
+  const equipped = (type: EquippedProfileReward['rewardType']) => profile?.profileRewards.find((reward) => reward.rewardType === type) ?? null;
+  const colorReward = equipped('color');
+  const frameReward = equipped('frame');
+  const titleReward = equipped('title');
+  const badgeReward = equipped('badge');
+  const iconReward = equipped('icon');
+  const rewardStyle = colorReward ? { '--profile-reward-color': colorReward.visualValue } as CSSProperties : undefined;
 
   return <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className="public-profile-dialog">
       <DialogHeader className="sr-only"><DialogTitle>{tr('Perfil público de atleta', 'Public athlete profile')}</DialogTitle><DialogDescription>{tr('Datos compartidos por el atleta.', 'Information shared by the athlete.')}</DialogDescription></DialogHeader>
       {loading ? <div className="public-profile-loading"><span /><p>{tr('Cargando perfil…', 'Loading profile…')}</p></div> : profile ? <div className="public-profile-scroll">
-        <header className="public-profile-hero">
-          <div className="public-profile-avatar">{profile.avatarBase64 ? <NextImage src={profile.avatarBase64} alt="" width={152} height={152} unoptimized /> : initials(profile.displayName)}</div>
-          <div className="public-profile-identity"><p className="eyebrow">{tr('Perfil de atleta', 'Athlete profile')}</p><h2>{profile.displayName}</h2><span>{language === 'es' ? levelNames[profile.level][0] : levelNames[profile.level][1]} · {tr('Desde', 'Since')} {new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric' }).format(new Date(profile.joinedAt))}</span></div>
-          <div className="public-profile-rank" aria-label={tr('Nivel de experiencia de la cuenta', 'Account experience level')}><Trophy aria-hidden="true" /><span>{tr('Nivel', 'Level')} {profile.accountLevel}</span><strong>{profile.totalXp.toLocaleString(locale)} XP</strong><small>{profile.unlockedAchievementCount} {tr('logros', 'achievements')}</small></div>
+        <header className={`public-profile-hero${colorReward ? ' has-reward-color' : ''}`} style={rewardStyle}>
+          <div className={`public-profile-avatar${frameReward ? ` reward-frame-${frameReward.visualValue}` : ''}`}>{profile.avatarBase64 ? <NextImage src={profile.avatarBase64} alt="" width={152} height={152} unoptimized /> : initials(profile.displayName)}</div>
+          <div className="public-profile-identity"><p className="eyebrow">{tr('Perfil de atleta', 'Athlete profile')}</p><h2>{profile.displayName}{iconReward && <RewardGlyph reward={iconReward} />}</h2>{titleReward && <strong className="public-profile-equipped-title">{language === 'es' ? titleReward.titleEs : titleReward.titleEn}</strong>}<span>{language === 'es' ? levelNames[profile.level][0] : levelNames[profile.level][1]} · {tr('Desde', 'Since')} {new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric' }).format(new Date(profile.joinedAt))}</span></div>
+          <div className="public-profile-rank" aria-label={tr('Nivel de experiencia de la cuenta', 'Account experience level')}><Trophy aria-hidden="true" /><span>{tr('Nivel', 'Level')} {profile.accountLevel}</span><strong>{profile.totalXp.toLocaleString(locale)} XP</strong><small>{profile.unlockedAchievementCount} {tr('logros', 'achievements')}</small>{badgeReward && <b><Medal aria-hidden="true" />{language === 'es' ? badgeReward.titleEs : badgeReward.titleEn}</b>}</div>
         </header>
         {profile.bio && <p className="public-profile-bio">{profile.bio}</p>}
+        {profile.socialLinksVisible && profile.socialLinks.length > 0 && <nav className="public-profile-social-links" aria-label={tr('Redes sociales del atleta', "Athlete's social links")}>{profile.socialLinks.map((link) => <a href={link.url} target="_blank" rel="noopener noreferrer nofollow" key={link.id}>{link.network === 'instagram' ? <AtSign aria-hidden="true" /> : link.network === 'youtube' ? <Play aria-hidden="true" /> : link.network === 'tiktok' ? <Music2 aria-hidden="true" /> : link.network === 'website' ? <Globe2 aria-hidden="true" /> : <span aria-hidden="true">X</span>}<span>{socialNetworkLabels[link.network]}</span><ExternalLink aria-hidden="true" /></a>)}</nav>}
+
+        <section className="public-profile-section">
+          <div className="public-profile-section-heading"><div><p className="eyebrow">{tr('Escaparate', 'Showcase')}</p><h3>{tr('Galería multimedia', 'Media gallery')}</h3></div><span>{profile.mediaItems.length}/3</span></div>
+          {profile.mediaVisible ? profile.mediaItems.length > 0 ? <div className="public-profile-media-grid">{profile.mediaItems.map((item) => {
+            const embedUrl = item.mediaType === 'youtube' ? youtubeEmbedUrl(item.url) : null;
+            return <article key={item.id}>
+              <div className="public-profile-media-frame">{item.mediaType === 'image' ? <NextImage src={item.url} alt={item.title} width={640} height={400} unoptimized referrerPolicy="no-referrer" /> : embedUrl ? <iframe src={embedUrl} title={item.title} loading="lazy" referrerPolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /> : <div><Link2 aria-hidden="true" /></div>}</div>
+              <div><h4>{item.title}</h4>{item.description && <p>{item.description}</p>}</div>
+            </article>;
+          })}</div> : <div className="public-profile-empty"><Link2 aria-hidden="true" /><p>{tr('Todavía no ha añadido elementos multimedia.', 'No media items have been added yet.')}</p></div> : <PrivateSection text={tr('La galería multimedia es privada.', 'The media gallery is private.')} />}
+        </section>
 
         <section className="public-profile-section">
           <div className="public-profile-section-heading"><div><p className="eyebrow">{tr('Contexto', 'Context')}</p><h3>{tr('Datos de entrenamiento', 'Training data')}</h3></div></div>
@@ -104,6 +124,18 @@ export function PublicAthleteProfileDialog({
       </div> : null}
     </DialogContent>
   </Dialog>;
+}
+
+function RewardGlyph({ reward }: { reward: EquippedProfileReward }) {
+  const Icon = reward.visualValue === 'flame' ? Flame
+    : reward.visualValue === 'star' ? Star
+      : reward.visualValue === 'medal' ? Medal
+        : reward.visualValue === 'trophy' ? Trophy
+          : reward.visualValue === 'trending' ? TrendingUp
+            : reward.visualValue === 'barbell' ? Dumbbell
+              : reward.visualValue === 'bolt' ? Zap
+                : Sparkles;
+  return <Icon className="public-profile-equipped-icon" aria-label={reward.titleEs} />;
 }
 
 function PrivateSection({ text }: { text: string }) {

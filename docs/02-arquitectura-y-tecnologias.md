@@ -92,6 +92,30 @@ Las versiones exactas están bloqueadas en `web/package-lock.json`.
 4. Triggers generan notificaciones y XP para el propietario.
 5. Las claves de evento garantizan idempotencia.
 
+### Recompensas visibles del perfil
+
+1. El nivel de cuenta materializado en `athlete_progress` determina los espacios disponibles; el cliente solo representa el estado y la base vuelve a validarlo.
+2. `profile_media_items` conserva metadatos y URL de tres imágenes o vídeos de YouTube, desbloqueados en los niveles 3, 6 y 9.
+3. `profile_social_links` conserva cuatro enlaces elegibles entre Instagram, YouTube, TikTok, X y web, desbloqueados en los niveles 2, 4, 6 y 8.
+4. Las escrituras pasan por RPC autenticadas que validan nivel, posición, protocolo, dominio y longitud. Las tablas solo son legibles directamente por su propietario.
+5. `public_athlete_profile()` proyecta únicamente las secciones autorizadas y vuelve a filtrar los elementos por el nivel actual; los vídeos usan el dominio de privacidad mejorada de YouTube.
+
+### Cosméticos y recompensas por categoría
+
+1. `profile_reward_definitions` mantiene un catálogo bilingüe e inmutable para niveles y logros de constancia, volumen, técnica, competición, comunidad y progreso.
+2. Cada entrada exige exactamente una condición de desbloqueo: nivel mínimo o código de logro. `equip_profile_reward()` vuelve a comprobarla en servidor.
+3. `profile_reward_preferences` conserva una selección independiente por tipo: color, icono, marco, título, insignia y celebración.
+4. `my_profile_rewards()` combina catálogo, nivel, logros y selección para la consola privada; `public_athlete_profile()` solo expone los elementos equipados.
+5. Las subidas a niveles múltiplos de diez activan una variante de celebración de prestigio sin alterar el nivel deportivo ni la prescripción de cargas.
+
+### Referencia de competición RFEH
+
+1. El perfil guarda únicamente `birth_year`, no la fecha completa, porque la RFEH define los grupos por año natural. `competition_sex` selecciona la tabla federativa masculina o femenina.
+2. `competition-standards.ts` versiona la temporada 2026, las categorías de peso vigentes desde el 1 de agosto y los totales equivalentes a 100 puntos élite publicados por la RFEH.
+3. La mínima se obtiene como `ceil(total_100_puntos × puntos_exigidos / 100)`: 38 puntos para Sub-15, 48 para Sub-17, 58/56 para Júnior masculino/femenino y 68/64 para Absoluto. Después se aplican las cuatro excepciones explícitas de categorías abiertas indicadas en las bases 4.2026.
+4. La comparación usa las referencias actuales de arrancada y dos tiempos. Una edad puede generar varias filas porque los grupos oficiales se solapan.
+5. La interfaz denomina el resultado «referencia por marca»: la aptitud oficial exige una marca acreditada en competición válida, dentro del periodo reglamentario, además de licencia y demás requisitos federativos.
+
 ### Finalización de sesión y nuevas marcas
 
 1. La UI sincroniza las series editadas antes de solicitar la finalización.

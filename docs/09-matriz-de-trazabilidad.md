@@ -30,11 +30,14 @@
 | RF-095–096 | `routine-hub.tsx`, `notification-center.tsx`, repositorio | RPC paginadas de migración 202609290002 | E2E de dos páginas de comunidad y pgTAP `0006` añadidos |
 | RF-097–098 | `AppFrame`, CSS global, `contrast.ts` | — | E2E de orden de teclado y 5 pares de contraste AA superados |
 | RF-099 | `React.lazy`, `scripts/check-bundle-size.mjs` | — | 46 chunks; máximo 328,5 kB bruto/96,6 kB gzip; presupuesto integrado en `check` |
+| RF-100–103 | `profile-showcase-editor.tsx`, `public-athlete-profile.tsx`, `profile-showcase.ts` | migración 202609290004, tablas y RPC de recompensas | 4 unitarias de niveles/URLs, pgTAP `0007` y recorrido E2E autenticado añadidos |
+| RF-104–108 | `achievement-console.tsx`, `gamification-celebration.tsx`, `public-athlete-profile.tsx`, `rewards.ts` | migración 202609290005, catálogo, preferencias y RPC de cosméticos | 3 unitarias, pgTAP `0008` y equipamiento dentro del E2E autenticado añadidos |
+| RF-109–113 | `competition-eligibility.tsx`, `competition-standards.ts`, Perfil y onboarding | migración 202609290006, `birth_year` y `competition_sex` | 10 unitarias, pgTAP `0009` y modal dentro del E2E autenticado añadidos |
 | RNF-001 | CSS responsive | — | Implementada; QA 360/768/1440 pendiente |
 | RNF-002 | UI semántica, primitives | — | Lint de accesibilidad superado; auditoría WCAG manual pendiente |
 | RNF-003 | Build de producción | — | Métricas de despliegue pendientes |
 | RNF-004–006 | RLS, constraints, claves únicas | todas las migraciones | Cobertura inicial; ampliación pendiente |
-| RNF-007 | tipos, reglas y repositorio | — | TypeScript, lint y 35 unitarias superadas; workflow automático añadido |
+| RNF-007 | tipos, reglas y repositorio | — | TypeScript, lint y 52 unitarias superadas; workflow automático añadido |
 | RNF-008 | migraciones y variables | — | Documentada |
 | RNF-009 | `i18n.tsx` y contenido bilingüe | `preferred_language` | Implementada; recorrido completo pendiente |
 | RNF-010 | generador explicable | marcas y notas | Implementada |
@@ -46,7 +49,7 @@
 | ID | Evidencia | Ubicación propuesta |
 | --- | --- | --- |
 | EV-01 | salida de tipos y build | workflow `quality.yml` y anexo técnico |
-| EV-02 | 35 unitarias de nivel, cargas, generador, bloques, celebraciones, calendario, rendimiento, estadísticas y contraste | `web/tests/unit` e informe de pruebas |
+| EV-02 | 52 unitarias de nivel, cargas, generador, bloques, celebraciones, calendario, rendimiento, estadísticas, contraste, baremos y recompensas de perfil | `web/tests/unit` e informe de pruebas |
 | EV-03 | RLS con dos usuarios | informe de seguridad |
 | EV-04 | privacidad granular | `supabase/tests/0002_social_privacy_gamification.test.sql` |
 | EV-05 | importación y procedencia | prueba E2E |
@@ -62,6 +65,9 @@
 | EV-15 | fases, descarga configurable y progresión porcentual sin alterar cargas absolutas | `web/tests/unit/training-blocks.test.ts` |
 | EV-16 | exportación, borrado de cuenta, páginas remotas y aislamiento por usuario | `authenticated-session.spec.ts` y `supabase/tests/0006_account_privacy_pagination.test.sql` |
 | EV-17 | teclado, foco, contraste y presupuesto de chunks | `auth.spec.ts`, `accessibility-contrast.test.ts` y `scripts/check-bundle-size.mjs` |
+| EV-18 | desbloqueo por nivel, validación de URLs, privacidad y exportación de galería/enlaces | `profile-showcase.test.ts`, `authenticated-session.spec.ts` y `supabase/tests/0007_profile_level_rewards.test.sql` |
+| EV-19 | cosméticos por nivel, hitos 5/10, categorías, equipamiento, exposición pública y exportación | `profile-rewards.test.ts`, `authenticated-session.spec.ts` y `supabase/tests/0008_cosmetic_rewards.test.sql` |
+| EV-20 | edad federativa, categoría de peso, mínima RFEH, solapamiento de campeonatos y advertencia normativa | `competition-standards.test.ts`, `authenticated-session.spec.ts` y `supabase/tests/0009_competition_profile.test.sql` |
 
 ## 4. Regla de mantenimiento
 

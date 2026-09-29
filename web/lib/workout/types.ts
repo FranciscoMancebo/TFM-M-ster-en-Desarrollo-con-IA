@@ -178,6 +178,7 @@ export type Language = 'es' | 'en';
 export type RoutineFocus = 'mobility' | 'strength' | 'technique' | 'competition';
 export type RoutineVisibility = 'private' | 'public';
 export type ProfileVisibility = 'private' | 'public';
+export type CompetitionSex = 'male' | 'female';
 
 export type ExerciseSection = 'strength' | 'mobility' | 'snatch' | 'clean_and_jerk';
 
@@ -203,6 +204,8 @@ export type UserProfile = {
   trainingDaysPerWeek: number | null;
   heightCm: number | null;
   weightKg: number | null;
+  birthYear: number | null;
+  competitionSex: CompetitionSex | null;
   avatarBase64: string | null;
   onboardingCompleted: boolean;
   weightliftingExperience: WeightliftingExperience | null;
@@ -211,7 +214,33 @@ export type UserProfile = {
   showTrainingData: boolean;
   showProgress: boolean;
   showPublicRoutines: boolean;
+  showMedia: boolean;
+  showSocialLinks: boolean;
   confirmDetectedRecords: boolean;
+};
+
+export type ProfileMediaType = 'image' | 'youtube';
+export type SocialNetwork = 'instagram' | 'youtube' | 'tiktok' | 'x' | 'website';
+
+export type ProfileMediaItem = {
+  id: string;
+  slot: number;
+  mediaType: ProfileMediaType;
+  url: string;
+  title: string;
+  description: string;
+};
+
+export type ProfileSocialLink = {
+  id: string;
+  slot: number;
+  network: SocialNetwork;
+  url: string;
+};
+
+export type ProfileShowcase = {
+  mediaItems: ProfileMediaItem[];
+  socialLinks: ProfileSocialLink[];
 };
 
 export type PublicProfileRoutine = {
@@ -241,6 +270,8 @@ export type PublicAthleteProfile = {
   trainingDataVisible: boolean;
   progressVisible: boolean;
   routinesVisible: boolean;
+  mediaVisible: boolean;
+  socialLinksVisible: boolean;
   goals: string[];
   trainingDaysPerWeek: number | null;
   heightCm: number | null;
@@ -248,6 +279,9 @@ export type PublicAthleteProfile = {
   weightliftingExperience: WeightliftingExperience | null;
   liftRecords: LiftRecord[];
   routines: PublicProfileRoutine[];
+  mediaItems: ProfileMediaItem[];
+  socialLinks: ProfileSocialLink[];
+  profileRewards: EquippedProfileReward[];
 };
 
 export type AppNotification = {
@@ -283,6 +317,26 @@ export type ExperienceEvent = {
   createdAt: string;
 };
 
+export type ProfileRewardCategory = 'level' | 'consistency' | 'volume' | 'technique' | 'competition' | 'community' | 'progress';
+export type ProfileRewardType = 'color' | 'icon' | 'frame' | 'title' | 'badge' | 'celebration';
+
+export type ProfileReward = {
+  code: string;
+  category: ProfileRewardCategory;
+  rewardType: ProfileRewardType;
+  titleEs: string;
+  titleEn: string;
+  descriptionEs: string;
+  descriptionEn: string;
+  visualValue: string;
+  requiredLevel: number | null;
+  achievementCode: string | null;
+  unlocked: boolean;
+  equipped: boolean;
+};
+
+export type EquippedProfileReward = Pick<ProfileReward, 'code' | 'rewardType' | 'titleEs' | 'titleEn' | 'visualValue'>;
+
 export type GamificationProgress = {
   totalXp: number;
   level: number;
@@ -291,6 +345,7 @@ export type GamificationProgress = {
   unlockedCount: number;
   achievements: Achievement[];
   recentEvents: ExperienceEvent[];
+  rewards: ProfileReward[];
 };
 
 export type RoutineSummary = {

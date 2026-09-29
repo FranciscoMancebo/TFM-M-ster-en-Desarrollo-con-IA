@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowUp, Award, Sparkles, Trophy, X } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { workoutRepository } from '@/lib/workout/repository';
+import { isPrestigeRewardLevel } from '@/lib/gamification/rewards';
 import type { Achievement, GamificationProgress } from '@/lib/workout/types';
 
 export const GAMIFICATION_CHECK_EVENT = 'haltero:gamification-check';
@@ -16,7 +17,7 @@ type GamificationSnapshot = {
 
 export type Celebration =
   | { key: string; kind: 'achievement'; achievement: Achievement }
-  | { key: string; kind: 'level'; level: number; totalXp: number };
+  | { key: string; kind: 'level'; level: number; totalXp: number; prestige: boolean };
 
 export function requestGamificationCheck() {
   if (typeof window === 'undefined') return;
@@ -52,6 +53,7 @@ export function celebrationsSince(
       kind: 'level',
       level: current.level,
       totalXp: current.totalXp,
+      prestige: isPrestigeRewardLevel(current.level),
     });
   }
   return achievements;
@@ -132,18 +134,19 @@ export function GamificationCelebration({ userId }: { userId: string }) {
   if (!active) return null;
 
   const isAchievement = active.kind === 'achievement';
+  const isPrestige = active.kind === 'level' && active.prestige;
   const title = isAchievement
     ? language === 'es' ? active.achievement.titleEs : active.achievement.titleEn
-    : tr(`¡Nivel ${active.level}!`, `Level ${active.level}!`);
+    : isPrestige ? tr(`¡Prestigio ${active.level / 10}!`, `Prestige ${active.level / 10}!`) : tr(`¡Nivel ${active.level}!`, `Level ${active.level}!`);
   const description = isAchievement
     ? language === 'es' ? active.achievement.descriptionEs : active.achievement.descriptionEn
     : tr(
-        `Has alcanzado ${active.totalXp.toLocaleString(locale)} XP. Tu constancia sigue creciendo.`,
-        `You have reached ${active.totalXp.toLocaleString(locale)} XP. Your consistency keeps growing.`,
+        isPrestige ? `Has alcanzado el nivel ${active.level} y una nueva insignia de prestigio.` : `Has alcanzado ${active.totalXp.toLocaleString(locale)} XP. Tu constancia sigue creciendo.`,
+        isPrestige ? `You reached level ${active.level} and earned a new prestige badge.` : `You have reached ${active.totalXp.toLocaleString(locale)} XP. Your consistency keeps growing.`,
       );
 
   return (
-    <aside className={`gamification-celebration is-${active.kind}`} role="alert" aria-live="assertive">
+    <aside className={`gamification-celebration is-${active.kind}${isPrestige ? ' is-prestige' : ''}`} role="alert" aria-live="assertive">
       <div className="celebration-particles" aria-hidden="true">
         {Array.from({ length: 10 }, (_, index) => <i key={index} />)}
       </div>
@@ -159,7 +162,7 @@ export function GamificationCelebration({ userId }: { userId: string }) {
         {isAchievement ? <Trophy /> : <ArrowUp />}
       </div>
       <div className="celebration-copy">
-        <span><Sparkles aria-hidden="true" />{isAchievement ? tr('Logro desbloqueado', 'Achievement unlocked') : tr('Subida de nivel', 'Level up')}</span>
+        <span><Sparkles aria-hidden="true" />{isAchievement ? tr('Logro desbloqueado', 'Achievement unlocked') : isPrestige ? tr('Hito de prestigio', 'Prestige milestone') : tr('Subida de nivel', 'Level up')}</span>
         <strong>{title}</strong>
         <p>{description}</p>
         {isAchievement && <small><Award aria-hidden="true" />+{active.achievement.xpReward} XP</small>}

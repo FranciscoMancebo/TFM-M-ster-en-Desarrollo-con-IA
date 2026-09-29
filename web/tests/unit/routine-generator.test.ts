@@ -30,6 +30,8 @@ const profile: UserProfile = {
   trainingDaysPerWeek: 3,
   heightCm: 175,
   weightKg: 80,
+  birthYear: 1995,
+  competitionSex: 'male',
   avatarBase64: null,
   onboardingCompleted: true,
   weightliftingExperience: 'under_6_months',
@@ -38,6 +40,8 @@ const profile: UserProfile = {
   showTrainingData: false,
   showProgress: false,
   showPublicRoutines: false,
+  showMedia: true,
+  showSocialLinks: true,
   confirmDetectedRecords: true,
 };
 
