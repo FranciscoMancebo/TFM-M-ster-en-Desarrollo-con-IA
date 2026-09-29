@@ -26,6 +26,7 @@
 | E-11 | Entrenador contextual | Consultar datos propios mediante reglas | Should |
 | E-12 | Multilenguaje | Usar español o inglés | Must |
 | E-13 | Portabilidad | Reproducir datos y despliegue | Must |
+| E-14 | Rendimiento y recuperación | Relacionar planificación, ejecución, esfuerzo, sensaciones y récords | Must |
 
 ## 3. Historias
 
@@ -45,6 +46,10 @@
 | US-024 | Activar una única rutina | Must | RF-038 |
 | US-030 | Ejecutar, pausar y reanudar sesión | Must | RF-040–044 |
 | US-031 | Finalizar y consultar resumen/historial | Must | RF-045–047 |
+| US-032 | Confirmar récords por ejercicio y repeticiones | Must | RF-074–077 |
+| US-033 | Registrar RPE y sensaciones de la sesión | Must | RF-078–079 |
+| US-034 | Comparar plan/ejecución y detectar caídas sostenidas | Must | RF-080–081 |
+| US-035 | Analizar volumen, intensidad, distribución y fuerza relativa | Must | RF-082–086 |
 | US-040 | Filtrar y revisar rutinas públicas | Must | RF-050–052 |
 | US-041 | Dar like y preguntar al autor | Must | RF-053–054 |
 | US-042 | Importar y activar conservando procedencia | Must | RF-055–057 |
@@ -95,7 +100,6 @@ Una historia entra en desarrollo cuando identifica:
 - exportación y borrado autoservicio;
 - recuperación de contraseña;
 - PWA/offline;
-- detección de marcas desde series;
 - paginación;
 - vídeos;
 - Storage para avatares;

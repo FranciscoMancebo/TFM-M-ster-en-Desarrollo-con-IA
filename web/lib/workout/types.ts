@@ -5,8 +5,11 @@ export type TrainingSet = {
   prescriptionId: string;
   exerciseId: string;
   orderIndex: number;
+  plannedWeight: number;
+  plannedReps: number;
   weight: number;
   reps: number;
+  rpe: number | null;
   status: SetStatus;
 };
 
@@ -30,6 +33,8 @@ export type RoutinePlan = {
   dayIndex: number;
   weeks: number;
   daysPerWeek: number;
+  phase: TrainingBlockPhase;
+  percentageAdjustment: number;
   exercises: Exercise[];
 };
 
@@ -38,6 +43,22 @@ export type ActiveWorkout = {
   exercises: Exercise[];
   elapsed: number;
   startedAt: string;
+};
+
+export type TrainingCategory = 'strength' | 'technique' | 'mobility';
+
+export type CompletedSetSummary = {
+  exerciseId: string;
+  exerciseName: string;
+  exerciseSlug: string;
+  category: TrainingCategory;
+  referenceLift: LiftType | null;
+  plannedWeight: number;
+  plannedReps: number;
+  weight: number;
+  reps: number;
+  rpe: number | null;
+  result: 'success' | 'miss' | 'skipped';
 };
 
 export type CompletedWorkout = {
@@ -50,6 +71,13 @@ export type CompletedWorkout = {
   failedSets: number;
   omittedSets: number;
   volumeKg: number;
+  plannedVolumeKg: number;
+  performancePercentage: number;
+  averageRpe: number | null;
+  painLevel: number | null;
+  fatigueLevel: number | null;
+  overallFeeling: SessionFeeling | null;
+  sets: CompletedSetSummary[];
 };
 
 export type LiftType = 'back_squat' | 'snatch' | 'front_squat' | 'clean_and_jerk';
@@ -65,10 +93,35 @@ export type LiftRecord = {
 export type NewLiftRecord = Omit<LiftRecord, 'id'>;
 
 export type WorkoutPersonalBest = {
-  lift: LiftType;
+  id: string;
+  exerciseId: string;
+  exerciseName: string;
+  exerciseSlug: string;
+  repetitions: 1 | 2 | 3 | 5;
   weightKg: number;
+  estimated1RmKg: number;
   previousWeightKg: number | null;
   achievedOn: string;
+  status: 'pending' | 'confirmed' | 'rejected';
+  canonicalLift: LiftType | null;
+  isVariant: boolean;
+};
+
+export type ExerciseRecord = WorkoutPersonalBest;
+
+export type SessionFeeling = 'poor' | 'okay' | 'good' | 'excellent';
+
+export type SessionFeedback = {
+  painLevel: number;
+  fatigueLevel: number;
+  overallFeeling: SessionFeeling;
+  notes: string;
+};
+
+export type PerformanceAlert = {
+  active: boolean;
+  dropPercentagePoints: number;
+  recentPercentages: number[];
 };
 
 export type CalendarEventType = 'workout' | 'rest' | 'competition' | 'free_session';
@@ -158,6 +211,7 @@ export type UserProfile = {
   showTrainingData: boolean;
   showProgress: boolean;
   showPublicRoutines: boolean;
+  confirmDetectedRecords: boolean;
 };
 
 export type PublicProfileRoutine = {
@@ -277,6 +331,15 @@ export type RoutineDayDraft = {
   exercises: RoutineExerciseDraft[];
 };
 
+export type TrainingBlockPhase = 'accumulation' | 'intensification' | 'deload';
+
+export type RoutineWeekDraft = {
+  weekNumber: number;
+  phase: TrainingBlockPhase;
+  percentageAdjustment: number;
+  days: RoutineDayDraft[];
+};
+
 export type RoutineEditorDraft = {
   routineId: string | null;
   title: string;
@@ -286,7 +349,9 @@ export type RoutineEditorDraft = {
   weeks: number;
   daysPerWeek: number;
   visibility: RoutineVisibility;
-  days: RoutineDayDraft[];
+  deloadWeek: number | null;
+  deloadReduction: number;
+  weekPlans: RoutineWeekDraft[];
 };
 
 export type CommunityRoutine = {
@@ -326,6 +391,9 @@ export function freshExercises(exercises: Exercise[]): Exercise[] {
       ...set,
       id: crypto.randomUUID(),
       orderIndex: ++orderIndex,
+      plannedWeight: set.weight,
+      plannedReps: set.reps,
+      rpe: null,
       status: 'pending',
     })),
   }));

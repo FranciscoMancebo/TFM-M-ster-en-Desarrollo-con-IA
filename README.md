@@ -11,13 +11,17 @@ Este repositorio contiene la aplicación, las migraciones de Supabase y la docum
 Capacidades disponibles:
 
 - registro, inicio y cierre de sesión con Supabase Auth;
+- recuperación segura de contraseña mediante enlace de Supabase;
 - configuración inicial guiada de disponibilidad, medidas, experiencia, objetivos, avatar y marcas;
-- detección automática de nuevas marcas personales desde series completadas en los movimientos de referencia;
+- detección de 1RM, 2RM, 3RM y 5RM por ejercicio, confirmación opcional y estimación diferenciada de 1RM;
 - cálculo de cuatro niveles deportivos: iniciación, principiante, intermedio y avanzado;
 - rutinas privadas o públicas, editables, eliminables y organizadas en días independientes;
 - creación manual o asistida mediante reglas por nivel, objetivo y marcas disponibles;
+- bloques de acumulación, intensificación y descarga, con semanas editables y progresión automática de porcentajes;
 - activación de rutinas propias e importación/activación de rutinas públicas con procedencia;
-- registro de sesiones, series completadas o fallidas, pausa, reanudación y resumen;
+- registro de sesiones, RPE por serie, carga planificada frente a realizada y cierre con dolor, fatiga y sensación general;
+- avisos cuando el rendimiento relativo desciende durante tres sesiones consecutivas;
+- estadísticas de volumen semanal por ejercicio, intensidad relativa, distribución del trabajo, total olímpico y fuerza respecto al peso corporal;
 - calendario semanal y mensual para planificar, reprogramar y clasificar entrenamientos, descansos, competiciones y sesiones libres;
 - adherencia semanal y mensual, racha de entrenamientos, días completados y semanas perfectas;
 - historial y gráficos fechados para sentadilla, arrancada, sentadilla frontal y dos tiempos;
@@ -26,7 +30,11 @@ Capacidades disponibles:
 - notificaciones por likes y preguntas;
 - experiencia, niveles de cuenta, logros desbloqueables y celebraciones animadas;
 - entrenador conversacional gratuito basado en reglas y en el contexto almacenado;
-- interfaz bilingüe en español e inglés.
+- interfaz bilingüe en español e inglés;
+- exportación JSON y eliminación definitiva de la cuenta por el propio usuario;
+- paginación remota de comunidad y notificaciones;
+- navegación por teclado, foco visible, contraste AA comprobado y respeto a movimiento reducido;
+- carga diferida de secciones y presupuesto automático del bundle de producción.
 
 ## Estructura
 
@@ -65,6 +73,8 @@ NEXT_PUBLIC_SUPABASE_URL=https://TU_PROYECTO.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=TU_CLAVE_PUBLICABLE
 ```
 
+En Supabase Auth → URL Configuration, la URL pública de GPT Sites debe figurar como `Site URL` o en `Redirect URLs` para que los enlaces de recuperación regresen a la aplicación. Añade también la URL local únicamente para probar la recuperación durante el desarrollo.
+
 También se puede iniciar con doble clic en `iniciar-web.cmd`.
 
 ### Base de datos remota
@@ -90,7 +100,9 @@ npm.cmd run test:e2e
 npm.cmd run check
 ```
 
-`test` ejecuta las pruebas unitarias de dominio; `test:e2e` abre Chromium mediante Playwright; y `check` agrupa tipos, lint, unitarias y build de producción. La primera ejecución E2E necesita instalar el navegador con `npx.cmd playwright install chromium`.
+`test` ejecuta las pruebas unitarias de dominio; `test:e2e` abre Chromium mediante Playwright; y `check` agrupa tipos, lint, unitarias, build de producción y presupuesto por chunk. La primera ejecución E2E necesita instalar el navegador con `npx.cmd playwright install chromium`. `npm.cmd run bundle:check` muestra peso bruto y gzip de los chunks mayores y falla por encima de 500 kB brutos o 180 kB gzip.
+
+El E2E autenticado crea un atleta efímero, completa una sesión, confirma la nueva marca y elimina la cuenta al terminar. Para habilitarlo, copia los nombres de `web/.env.e2e.example` al entorno del proceso y utiliza un proyecto Supabase aislado. La clave `service_role` solo se consume desde el proceso Node de Playwright y nunca se expone como variable `VITE_*`.
 
 Las pruebas transaccionales de seguridad y comportamiento de Supabase están en `supabase/tests/`. Con Docker Desktop activo y el proyecto enlazado se ejecutan desde `web/` con:
 

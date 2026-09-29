@@ -5,6 +5,7 @@ import type {
   CompletedWorkout,
   CommunityRoutine,
   Exercise,
+  ExerciseRecord,
   ExerciseLibraryItem,
   ExerciseSection,
   LiftRecord,
@@ -15,6 +16,7 @@ import type {
   RoutineEditorDraft,
   RoutineQuestion,
   RoutineSummary,
+  SessionFeedback,
   TrainingSet,
   UserProfile,
   PublicAthleteProfile,
@@ -28,8 +30,11 @@ import type {
   TrainingCalendarEvent,
 } from './types';
 import { latestLiftRecords } from './lifts';
+import { classifyTrainingCategory } from './statistics';
+import { createTrainingWeeks, defaultDeloadReduction } from './training-blocks';
 
 type DatabaseError = { message: string } | null;
+type PageResult<T> = { items: T[]; hasMore: boolean };
 
 function client(): SupabaseClient {
   return getSupabaseClient();
@@ -148,7 +153,7 @@ export const workoutRepository = {
   async loadProfile(userId: string): Promise<UserProfile> {
     const { data, error } = await client()
       .from('profiles')
-      .select('user_id,display_name,bio,level,goals,training_days_per_week,height_cm,weight_kg,avatar_base64,onboarding_completed,weightlifting_experience,preferred_language,profile_visibility,show_training_data,show_progress,show_public_routines')
+      .select('user_id,display_name,bio,level,goals,training_days_per_week,height_cm,weight_kg,avatar_base64,onboarding_completed,weightlifting_experience,preferred_language,profile_visibility,show_training_data,show_progress,show_public_routines,confirm_detected_records')
       .eq('user_id', userId)
       .single();
     const profile = requireData(data, error);
@@ -169,6 +174,7 @@ export const workoutRepository = {
       showTrainingData: profile.show_training_data,
       showProgress: profile.show_progress,
       showPublicRoutines: profile.show_public_routines,
+      confirmDetectedRecords: profile.confirm_detected_records,
     };
   },
 
@@ -191,6 +197,7 @@ export const workoutRepository = {
         show_training_data: profile.showTrainingData,
         show_progress: profile.showProgress,
         show_public_routines: profile.showPublicRoutines,
+        confirm_detected_records: profile.confirmDetectedRecords,
       })
       .eq('user_id', profile.userId);
     if (error) throw new Error(error.message);
@@ -257,10 +264,14 @@ export const workoutRepository = {
     };
   },
 
-  async loadNotifications(limit = 30): Promise<AppNotification[]> {
-    const { data, error } = await client().rpc('my_notifications', { result_limit: limit });
+  async loadNotifications(offset = 0, limit = 10): Promise<PageResult<AppNotification>> {
+    const { data, error } = await client().rpc('my_notifications_page', {
+      page_limit: limit + 1,
+      page_offset: offset,
+    });
     if (error) throw new Error(error.message);
-    return (data ?? []).map((notification: Record<string, unknown>) => ({
+    const rows = data ?? [];
+    const items = rows.slice(0, limit).map((notification: Record<string, unknown>) => ({
       id: String(notification.id),
       type: notification.notification_type as AppNotification['type'],
       actorId: optionalText(notification.actor_id),
@@ -272,6 +283,15 @@ export const workoutRepository = {
       readAt: optionalText(notification.read_at),
       createdAt: String(notification.created_at),
     }));
+    return { items, hasMore: rows.length > limit };
+  },
+
+  async countUnreadNotifications(): Promise<number> {
+    const { count, error } = await client().from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .is('read_at', null);
+    if (error) throw new Error(error.message);
+    return count ?? 0;
   },
 
   async markNotificationsRead(notificationIds?: string[]) {
@@ -457,9 +477,8 @@ export const workoutRepository = {
 
     const { data: days, error: dayError } = await client()
       .from('routine_days')
-      .select('id,name,week_number,day_index')
+      .select('id,name,week_number,day_index,phase,percentage_adjustment')
       .eq('routine_version_id', routineVersion.id)
-      .eq('week_number', 1)
       .order('week_number')
       .order('day_index');
     if (dayError) throw new Error(dayError.message);
@@ -472,11 +491,16 @@ export const workoutRepository = {
       .eq('status', 'completed');
     if (countError) throw new Error(countError.message);
     const completedCount = completedSessionCount ?? 0;
-    const routineDay = targetRoutineDayId
+    const currentWeek = Math.floor(completedCount / routineVersion.days_per_week) % routineVersion.weeks + 1;
+    const targetTemplate = targetRoutineDayId
       ? days.find((day) => day.id === targetRoutineDayId)
-      : days[completedCount % days.length];
-    if (!routineDay) throw new Error('El día programado no pertenece a la rutina activa.');
-    const currentWeek = Math.floor(completedCount / days.length) % routineVersion.weeks + 1;
+      : null;
+    if (targetRoutineDayId && !targetTemplate) throw new Error('El día programado no pertenece a la rutina activa.');
+    const currentDayIndex = targetTemplate?.day_index
+      ?? completedCount % routineVersion.days_per_week + 1;
+    const routineDay = days.find((day) => day.week_number === currentWeek && day.day_index === currentDayIndex)
+      ?? days.find((day) => day.week_number === 1 && day.day_index === currentDayIndex);
+    if (!routineDay) throw new Error('La rutina no tiene configurado este día.');
 
     const [{ data: prescriptions, error: prescriptionsError }, liftRecords] = await Promise.all([
       client()
@@ -509,8 +533,11 @@ export const workoutRepository = {
         prescriptionId: item.id,
         exerciseId: item.exercise_id,
         orderIndex: ++orderIndex,
+        plannedWeight: load,
+        plannedReps: item.repetitions,
         weight: load,
         reps: item.repetitions,
+        rpe: null,
         status: 'pending',
       }));
       const intensity = item.intensity_type === 'percentage'
@@ -541,6 +568,8 @@ export const workoutRepository = {
       dayIndex: routineDay.day_index,
       weeks: routineVersion.weeks,
       daysPerWeek: routineVersion.days_per_week,
+      phase: (routineDay.phase ?? 'accumulation') as RoutinePlan['phase'],
+      percentageAdjustment: Number(routineDay.percentage_adjustment ?? 0),
       exercises,
     };
   },
@@ -559,7 +588,7 @@ export const workoutRepository = {
 
     const { data: rows, error: rowsError } = await client()
       .from('performed_sets')
-      .select('id,prescription_id,exercise_id,order_index,load_kg,repetitions,result')
+      .select('id,prescription_id,exercise_id,order_index,planned_load_kg,planned_repetitions,load_kg,repetitions,rpe,result')
       .eq('session_id', session.id)
       .order('order_index');
     if (rowsError) throw new Error(rowsError.message);
@@ -573,8 +602,11 @@ export const workoutRepository = {
         prescriptionId: row.prescription_id,
         exerciseId: row.exercise_id,
         orderIndex: row.order_index,
+        plannedWeight: Number(row.planned_load_kg),
+        plannedReps: row.planned_repetitions,
         weight: Number(row.load_kg),
         reps: row.repetitions,
+        rpe: row.rpe === null ? null : Number(row.rpe),
         status: statusFromResult(row.result),
       });
       byPrescription.set(row.prescription_id, current);
@@ -613,8 +645,11 @@ export const workoutRepository = {
         exercise_id: set.exerciseId,
         prescription_id: set.prescriptionId,
         order_index: set.orderIndex,
+        planned_load_kg: set.plannedWeight,
+        planned_repetitions: set.plannedReps,
         load_kg: set.weight,
         repetitions: set.reps,
+        rpe: set.rpe,
         result: 'skipped',
       })),
     );
@@ -647,6 +682,7 @@ export const workoutRepository = {
       .update({
         load_kg: set.weight,
         repetitions: set.reps,
+        rpe: set.rpe,
         result: resultFromStatus(set.status),
         performed_at: new Date().toISOString(),
       })
@@ -654,25 +690,75 @@ export const workoutRepository = {
     if (error) throw new Error(error.message);
   },
 
-  async finishSession(sessionId: string): Promise<WorkoutPersonalBest[]> {
-    const { data, error } = await client().rpc('finish_workout_session', {
+  async finishSession(sessionId: string, feedback: SessionFeedback): Promise<WorkoutPersonalBest[]> {
+    const { data, error } = await client().rpc('finish_workout_session_v2', {
       target_session_id: sessionId,
+      target_pain_level: feedback.painLevel,
+      target_fatigue_level: feedback.fatigueLevel,
+      target_overall_feeling: feedback.overallFeeling,
+      target_feedback_notes: feedback.notes.trim() || null,
     });
     if (error) throw new Error(error.message);
     return (data ?? []).map((record: Record<string, unknown>) => ({
-      lift: record.lift as LiftType,
+      id: String(record.record_id),
+      exerciseId: String(record.exercise_id),
+      exerciseName: String(record.exercise_name),
+      exerciseSlug: String(record.exercise_slug),
+      repetitions: Number(record.repetitions) as WorkoutPersonalBest['repetitions'],
       weightKg: Number(record.weight_kg),
+      estimated1RmKg: Number(record.estimated_1rm_kg),
       previousWeightKg: record.previous_weight_kg === null
         ? null
         : Number(record.previous_weight_kg),
       achievedOn: String(record.achieved_on),
+      status: record.record_status as WorkoutPersonalBest['status'],
+      canonicalLift: optionalText(record.canonical_lift) as LiftType | null,
+      isVariant: Boolean(record.is_variant),
     }));
+  },
+
+  async loadExerciseRecords(userId: string): Promise<ExerciseRecord[]> {
+    const { data, error } = await client()
+      .from('exercise_records')
+      .select('id,exercise_id,repetitions,weight_kg,estimated_1rm_kg,achieved_on,status,exercise:exercises(name,slug)')
+      .eq('user_id', userId)
+      .eq('status', 'confirmed')
+      .order('achieved_on', { ascending: false })
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((record) => {
+      const exercise = Array.isArray(record.exercise) ? record.exercise[0] : record.exercise;
+      const canonicalLift = exercise?.slug ? referenceLiftFromSlug(exercise.slug) : undefined;
+      const isCanonical = ['sentadilla', 'arrancada', 'sentadilla-frontal', 'dos-tiempos'].includes(exercise?.slug ?? '');
+      return {
+        id: record.id,
+        exerciseId: record.exercise_id,
+        exerciseName: exercise?.name ?? 'Ejercicio',
+        exerciseSlug: exercise?.slug ?? '',
+        repetitions: record.repetitions as ExerciseRecord['repetitions'],
+        weightKg: Number(record.weight_kg),
+        estimated1RmKg: Number(record.estimated_1rm_kg),
+        previousWeightKg: null,
+        achievedOn: record.achieved_on,
+        status: record.status as ExerciseRecord['status'],
+        canonicalLift: isCanonical ? canonicalLift ?? null : null,
+        isVariant: !isCanonical,
+      };
+    });
+  },
+
+  async resolveExerciseRecord(recordId: string, accepted: boolean) {
+    const { error } = await client().rpc('resolve_exercise_record', {
+      target_record_id: recordId,
+      accept_record: accepted,
+    });
+    if (error) throw new Error(error.message);
   },
 
   async loadHistory(userId: string): Promise<CompletedWorkout[]> {
     const { data, error } = await client()
       .from('workout_sessions')
-      .select('id,started_at,finished_at,routine_day:routine_days(name,routine_version:routine_versions(title)),performed_sets(load_kg,repetitions,result)')
+      .select('id,started_at,finished_at,pain_level,fatigue_level,overall_feeling,routine_day:routine_days(name,routine_version:routine_versions(title)),performed_sets(planned_load_kg,planned_repetitions,load_kg,repetitions,rpe,result,exercise:exercises(id,name,slug,category))')
       .eq('user_id', userId)
       .eq('status', 'completed')
       .order('finished_at', { ascending: false })
@@ -686,7 +772,26 @@ export const workoutRepository = {
         : relatedDay?.routine_version;
       const sets = session.performed_sets ?? [];
       const completed = sets.filter((set) => set.result === 'success');
+      const plannedVolumeKg = sets.reduce((sum, set) => sum + Number(set.planned_load_kg) * set.planned_repetitions, 0);
+      const volumeKg = completed.reduce((sum, set) => sum + Number(set.load_kg) * set.repetitions, 0);
+      const rpeValues = completed.flatMap((set) => set.rpe === null ? [] : [Number(set.rpe)]);
       const finishedAt = session.finished_at ?? session.started_at;
+      const setSummaries: CompletedWorkout['sets'] = sets.map((set) => {
+        const exercise = Array.isArray(set.exercise) ? set.exercise[0] : set.exercise;
+        return {
+          exerciseId: exercise?.id ?? '',
+          exerciseName: exercise?.name ?? 'Ejercicio',
+          exerciseSlug: exercise?.slug ?? '',
+          category: classifyTrainingCategory(exercise?.category ?? ''),
+          referenceLift: exercise?.slug ? referenceLiftFromSlug(exercise.slug) ?? null : null,
+          plannedWeight: Number(set.planned_load_kg),
+          plannedReps: set.planned_repetitions,
+          weight: Number(set.load_kg),
+          reps: set.repetitions,
+          rpe: set.rpe === null ? null : Number(set.rpe),
+          result: set.result as CompletedWorkout['sets'][number]['result'],
+        };
+      });
       return {
         id: session.id,
         routineName: relatedVersion?.title ?? 'Entrenamiento',
@@ -696,7 +801,14 @@ export const workoutRepository = {
         completedSets: completed.length,
         failedSets: sets.filter((set) => set.result === 'miss').length,
         omittedSets: sets.filter((set) => set.result === 'skipped').length,
-        volumeKg: completed.reduce((sum, set) => sum + Number(set.load_kg) * set.repetitions, 0),
+        volumeKg,
+        plannedVolumeKg,
+        performancePercentage: plannedVolumeKg > 0 ? Math.round(volumeKg / plannedVolumeKg * 1000) / 10 : 0,
+        averageRpe: rpeValues.length ? Math.round(rpeValues.reduce((sum, value) => sum + value, 0) / rpeValues.length * 10) / 10 : null,
+        painLevel: session.pain_level,
+        fatigueLevel: session.fatigue_level,
+        overallFeeling: session.overall_feeling as CompletedWorkout['overallFeeling'],
+        sets: setSummaries,
       };
     });
   },
@@ -861,9 +973,8 @@ export const workoutRepository = {
 
     const { data: days, error: daysError } = await client()
       .from('routine_days')
-      .select('id,name,day_index')
+      .select('id,name,week_number,day_index,phase,percentage_adjustment')
       .eq('routine_version_id', version.id)
-      .eq('week_number', 1)
       .order('week_number')
       .order('day_index');
     if (daysError) throw new Error(daysError.message);
@@ -876,6 +987,36 @@ export const workoutRepository = {
       .order('sort_order');
     if (prescriptionsError) throw new Error(prescriptionsError.message);
 
+    const mappedDays = new Map((days ?? []).map((day) => [day.id, {
+      name: day.name,
+      exercises: (prescriptions ?? []).filter((item) => item.routine_day_id === day.id).map((item) => {
+        const relatedExercise = Array.isArray(item.exercise) ? item.exercise[0] : item.exercise;
+        return {
+          exerciseId: item.exercise_id,
+          exerciseName: relatedExercise?.name ?? 'Ejercicio',
+          sets: item.sets,
+          repetitions: item.repetitions,
+          intensityType: item.intensity_type as 'load' | 'percentage',
+          intensityValue: Number(item.intensity_value),
+          restSeconds: item.rest_seconds ?? 120,
+          notes: item.notes ?? '',
+        };
+      }),
+    }]));
+    const firstWeekDays = days.filter((day) => day.week_number === 1).map((day) => mappedDays.get(day.id)!);
+    const defaultDeloadWeek = version.weeks >= 3 ? version.weeks : null;
+    const generatedWeeks = createTrainingWeeks(firstWeekDays, version.weeks, defaultDeloadWeek, defaultDeloadReduction);
+    const weekPlans = generatedWeeks.map((generated) => {
+      const savedDays = days.filter((day) => day.week_number === generated.weekNumber);
+      if (!savedDays.length) return generated;
+      return {
+        weekNumber: generated.weekNumber,
+        phase: (savedDays[0].phase ?? generated.phase) as typeof generated.phase,
+        percentageAdjustment: Number(savedDays[0].percentage_adjustment ?? generated.percentageAdjustment),
+        days: savedDays.map((day) => mappedDays.get(day.id)!),
+      };
+    });
+    const deloadPlan = weekPlans.find((week) => week.phase === 'deload');
     return {
       routineId,
       title: version.title,
@@ -885,22 +1026,9 @@ export const workoutRepository = {
       weeks: version.weeks,
       daysPerWeek: version.days_per_week,
       visibility: version.visibility === 'public' ? 'public' : 'private',
-      days: days.map((day) => ({
-        name: day.name,
-        exercises: (prescriptions ?? []).filter((item) => item.routine_day_id === day.id).map((item) => {
-          const relatedExercise = Array.isArray(item.exercise) ? item.exercise[0] : item.exercise;
-          return {
-            exerciseId: item.exercise_id,
-            exerciseName: relatedExercise?.name ?? 'Ejercicio',
-            sets: item.sets,
-            repetitions: item.repetitions,
-            intensityType: item.intensity_type as 'load' | 'percentage',
-            intensityValue: Number(item.intensity_value),
-            restSeconds: item.rest_seconds ?? 120,
-            notes: item.notes ?? '',
-          };
-        }),
-      })),
+      deloadWeek: deloadPlan?.weekNumber ?? null,
+      deloadReduction: deloadPlan ? Math.abs(deloadPlan.percentageAdjustment) : defaultDeloadReduction,
+      weekPlans,
     };
   },
 
@@ -948,16 +1076,21 @@ export const workoutRepository = {
       routine_weeks: draft.weeks,
       routine_days_per_week: draft.daysPerWeek,
       routine_visibility: draft.visibility,
-      routine_days_data: draft.days.map((day) => ({
-        name: day.name,
-        exercises: day.exercises.map((exercise) => ({
-          exercise_id: exercise.exerciseId,
-          sets: exercise.sets,
-          repetitions: exercise.repetitions,
-          intensity_type: exercise.intensityType,
-          intensity_value: exercise.intensityValue,
-          rest_seconds: exercise.restSeconds,
-          notes: exercise.notes,
+      routine_days_data: draft.weekPlans.map((week) => ({
+        week_number: week.weekNumber,
+        phase: week.phase,
+        percentage_adjustment: week.percentageAdjustment,
+        days: week.days.map((day) => ({
+          name: day.name,
+          exercises: day.exercises.map((exercise) => ({
+            exercise_id: exercise.exerciseId,
+            sets: exercise.sets,
+            repetitions: exercise.repetitions,
+            intensity_type: exercise.intensityType,
+            intensity_value: exercise.intensityValue,
+            rest_seconds: exercise.restSeconds,
+            notes: exercise.notes,
+          })),
         })),
       })),
     });
@@ -970,10 +1103,26 @@ export const workoutRepository = {
     if (error) throw new Error(error.message);
   },
 
-  async loadCommunityRoutines(): Promise<CommunityRoutine[]> {
-    const { data, error } = await client().rpc('community_routines');
+  async loadCommunityRoutines({
+    offset = 0,
+    limit = 8,
+    level = null,
+    focus = null,
+  }: {
+    offset?: number;
+    limit?: number;
+    level?: CommunityRoutine['authorLevel'] | null;
+    focus?: CommunityRoutine['focus'] | null;
+  } = {}): Promise<PageResult<CommunityRoutine>> {
+    const { data, error } = await client().rpc('community_routines_page', {
+      page_limit: limit + 1,
+      page_offset: offset,
+      filter_level: level,
+      filter_focus: focus,
+    });
     if (error) throw new Error(error.message);
-    return (data ?? []).map((routine: Record<string, unknown>) => ({
+    const rows = data ?? [];
+    const items = rows.slice(0, limit).map((routine: Record<string, unknown>) => ({
       routineId: String(routine.routine_id),
       versionId: String(routine.routine_version_id),
       title: String(routine.title),
@@ -991,6 +1140,20 @@ export const workoutRepository = {
       questionCount: Number(routine.question_count),
       publishedAt: String(routine.published_at),
     }));
+    return { items, hasMore: rows.length > limit };
+  },
+
+  async exportMyData(): Promise<Record<string, unknown>> {
+    const { data, error } = await client().rpc('export_my_data');
+    if (error) throw new Error(error.message);
+    return requireData(data as Record<string, unknown> | null, null);
+  },
+
+  async deleteMyAccount(confirmationEmail: string): Promise<void> {
+    const { error } = await client().rpc('delete_my_account', {
+      confirmation_email: confirmationEmail,
+    });
+    if (error) throw new Error(error.message);
   },
 
   async toggleRoutineLike(versionId: string, liked: boolean) {

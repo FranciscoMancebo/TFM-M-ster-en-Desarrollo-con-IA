@@ -91,6 +91,18 @@ Asignar tres días distintos de la rutina a la semana actual, añadir un descans
 
 **Éxito:** las vistas semanal y mensual coinciden, se conservan fecha de origen y estados, la sesión completada actualiza el calendario y los porcentajes, la racha y los logros se recalculan sin duplicados.
 
+### T10 — Rendimiento, récords y recuperación
+
+Completar una sesión modificando la carga planificada, registrar RPE por serie y finalizar con dolor, fatiga y sensación general. Superar un 3RM de sentadilla y otro de sentadilla con pausa, confirmar uno y descartar otro.
+
+**Éxito:** el resumen compara planificación y ejecución, muestra RPE y sensaciones, las marcas permanecen pendientes hasta decidir, el 1RM estimado se distingue del peso real y la variante no altera la sentadilla principal. Tras tres descensos consecutivos de al menos diez puntos aparece un único aviso informativo.
+
+### T11 — Estadísticas avanzadas
+
+Completar sesiones en dos semanas con ejercicios de fuerza, técnica y movilidad, modificar cargas y registrar nuevas marcas de arrancada y dos tiempos.
+
+**Éxito:** el volumen aparece en la semana y ejercicio correctos; la movilidad figura aunque use 0 kg; la intensidad declara su cobertura y usa la marca válida en cada fecha; el total olímpico coincide con la suma histórica; y las relaciones cambian al editar el peso corporal.
+
 ## 5. Evaluación técnica
 
 ### Compilación y tipos
@@ -110,16 +122,23 @@ Casos unitarios automatizados:
 - redondeo a 2,5 kg;
 - selección de variantes de iniciación;
 - límite de uno a siete días.
-- detección atómica de marcas desde sesiones, exclusión de fallos y variantes e idempotencia al finalizar.
+- detección atómica de marcas desde sesiones, exclusión de fallos e idempotencia al finalizar;
+- estimación de 1RM y detección de caída sostenida de rendimiento;
+- volumen semanal, intensidad fechada, distribución, total olímpico y cocientes corporales;
 - límites semanales/mensuales, desplazamiento de periodos y rejilla mensual estable de 42 días.
+- fases de acumulación, intensificación y descarga, progresión porcentual, límites y preservación de cargas absolutas.
 
-La suite se encuentra en `web/tests/unit` y se ejecuta con `npm.cmd run test`. Incluye la detección no repetitiva de logros y subidas de nivel. Quedan como ampliación la función de volumen y la fórmula de nivel de cuenta.
+La suite se encuentra en `web/tests/unit` y se ejecuta con `npm.cmd run test`. Incluye la detección no repetitiva de logros y subidas de nivel, la fórmula Epley, las condiciones del aviso de rendimiento y casos positivos, vacíos y de exclusión para las cinco estadísticas avanzadas.
 
-La prueba pgTAP `0003_workout_personal_bests.test.sql` cubre la detección de marcas en base de datos, el mejor intento de la sesión, la autorización y la repetición segura de la finalización. `0004_training_calendar_adherence.test.sql` cubre RLS del calendario, tipos de día, enlace con sesiones, finalización automática, adherencia, racha y reprogramación.
+La prueba pgTAP `0003_workout_personal_bests.test.sql` conserva la compatibilidad de la detección canónica. `0004_training_calendar_adherence.test.sql` cubre RLS del calendario, tipos de día, enlace con sesiones, finalización automática, adherencia, racha y reprogramación. `0005_performance_records_recovery.test.sql` cubre confirmación, rangos de repeticiones, estimación, separación de variantes, sensaciones, planificación frente a ejecución y RLS. `0006_account_privacy_pagination.test.sql` valida el aislamiento de la exportación, la exclusión de credenciales internas, el borrado confirmado y páginas estables de comunidad y notificaciones.
 
 ### Navegador
 
-La suite `web/tests/e2e` comprueba que la pantalla de acceso se representa correctamente y que se puede alternar entre inicio de sesión y creación de cuenta en Chromium. Se ejecuta con `npm.cmd run test:e2e` y no crea usuarios ni modifica datos remotos.
+La suite `web/tests/e2e` comprueba la pantalla de acceso y el cambio entre inicio de sesión y alta sin depender de datos remotos. Cuando están definidas `E2E_SUPABASE_URL`, `E2E_SUPABASE_PUBLISHABLE_KEY` y `E2E_SUPABASE_SERVICE_ROLE_KEY`, añade un recorrido autenticado real: crea un atleta aislado, prepara una rutina de una serie, inicia sesión, completa la sesión, confirma la marca detectada, verifica `exercise_records` y `lift_records`, y elimina el usuario en `finally`. Sin esas credenciales el caso remoto se marca explícitamente como omitido.
+
+El mismo recorrido descarga y valida la exportación JSON, comprueba que la comunidad entrega un máximo de ocho rutinas y carga la página siguiente. Otro E2E elimina una cuenta efímera desde Perfil y verifica que desaparece de Supabase Auth. El acceso cubre también orden de tabulación y apertura del formulario de recuperación.
+
+La auditoría automática de contraste calcula luminancia relativa y ratio WCAG para texto principal, texto secundario, enlaces, señal sobre fondo oscuro y acciones destructivas. El build informa el total cliente y los ocho chunks mayores; el presupuesto por archivo es 500 kB bruto y 180 kB gzip.
 
 ### Datos y seguridad
 
@@ -134,7 +153,7 @@ La suite `web/tests/e2e` comprueba que la pantalla de acceso se representa corre
 - XP idempotente.
 - RPC inaccesibles para `anon`.
 
-Las pruebas pgTAP residen en `supabase/tests`: `0001` cubre el aislamiento del núcleo de rutinas y sesiones, `0002` cubre privacidad social, likes, preguntas, notificaciones y gamificación, `0003` cubre marcas desde entrenamientos y `0004` calendario/adherencia. Todas usan transacciones con `ROLLBACK`.
+Las pruebas pgTAP residen en `supabase/tests`: `0001` cubre el aislamiento del núcleo de rutinas y sesiones, `0002` privacidad social y gamificación, `0003` marcas canónicas, `0004` calendario/adherencia, `0005` rendimiento, recuperación y récords por ejercicio, y `0006` privacidad de cuenta y paginación. Todas usan transacciones con `ROLLBACK`.
 
 ### Accesibilidad
 

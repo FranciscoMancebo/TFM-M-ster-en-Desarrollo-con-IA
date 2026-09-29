@@ -95,6 +95,38 @@ La identidad efectiva procede de `auth.uid()`. Un identificador enviado desde el
 - **RF-072:** mantener las respuestas dentro del contexto disponible y declarar sus límites.
 - **RF-073:** funcionar sin coste de inferencia ni clave de modelo mediante reglas locales.
 
+### Rendimiento y recuperación
+
+- **RF-074:** detectar 1RM, 2RM, 3RM y 5RM a partir de series satisfactorias al finalizar la sesión.
+- **RF-075:** permitir confirmar o descartar cada marca detectada y configurar si la confirmación es necesaria.
+- **RF-076:** estimar el 1RM de los récords de repeticiones mediante una fórmula explícita, sin presentarlo como levantamiento real.
+- **RF-077:** conservar récords independientes por ejercicio, de modo que una variante no modifique el movimiento principal.
+- **RF-078:** registrar RPE opcional entre 1 y 10 en cada serie.
+- **RF-079:** registrar dolor, fatiga, sensación general y notas al cerrar una sesión.
+- **RF-080:** comparar el volumen planificado con el volumen realizado de las series satisfactorias.
+- **RF-081:** avisar cuando el porcentaje de rendimiento desciende durante tres sesiones consecutivas y acumula al menos diez puntos porcentuales de caída.
+- **RF-082:** agrupar el volumen satisfactorio por ejercicio y semana natural iniciada en lunes.
+- **RF-083:** calcular la intensidad media como porcentaje de la marca compatible vigente en la fecha de cada sesión, ponderado por repeticiones.
+- **RF-084:** distribuir las series satisfactorias entre fuerza, técnica y movilidad, incluyendo el trabajo sin carga externa.
+- **RF-085:** representar la evolución del total olímpico como suma de la última arrancada y el último dos tiempos disponibles en cada fecha.
+- **RF-086:** relacionar las últimas marcas canónicas y el total olímpico con el peso corporal actual.
+- **RF-087:** dividir una rutina en semanas persistidas que puedan contener sesiones diferentes.
+- **RF-088:** asignar a cada semana una fase de acumulación, intensificación o descarga.
+- **RF-089:** generar automáticamente una progresión de puntos porcentuales desde una semana base sin alterar las cargas absolutas.
+- **RF-090:** configurar o desactivar la semana de descarga y ajustar su reducción porcentual.
+- **RF-091:** mostrar la fase y el ajuste de la semana activa durante la preparación y ejecución del entrenamiento.
+
+### Cuenta, privacidad y escalabilidad
+
+- **RF-092:** solicitar un enlace de recuperación de contraseña sin revelar si el correo está registrado y permitir elegir una contraseña nueva al volver desde Supabase Auth.
+- **RF-093:** exportar en JSON los datos propios de perfil, entrenamiento, planificación, marcas, rutinas, calendario, actividad social y gamificación.
+- **RF-094:** eliminar definitivamente la cuenta y sus datos relacionados tras confirmar el correo del usuario.
+- **RF-095:** paginar en servidor las rutinas de comunidad y aplicar allí los filtros de nivel y enfoque.
+- **RF-096:** paginar las notificaciones manteniendo un contador exacto de no leídas.
+- **RF-097:** permitir saltar al contenido, recorrer acciones por teclado, distinguir el foco y respetar la preferencia de movimiento reducido.
+- **RF-098:** comprobar que los pares de color principales satisfacen WCAG AA para texto normal.
+- **RF-099:** dividir en chunks las secciones pesadas y hacer fallar la validación cuando un chunk supere el presupuesto documentado.
+
 ## 3. Historias prioritarias y aceptación
 
 ### HU-01 — Configurar mi punto de partida
@@ -152,6 +184,19 @@ Como autor, quiero conocer likes y preguntas y ver logros de uso.
 - Marcar como leído solo afecta a las notificaciones propias.
 - Nivel deportivo y nivel de cuenta se presentan como conceptos distintos.
 
+### HU-06 — Interpretar rendimiento y recuperación
+
+Como atleta, quiero registrar esfuerzo y sensaciones junto con mis resultados para distinguir una mejora real de una sesión afectada por fatiga o dolor.
+
+**Aceptación:**
+
+- El RPE es opcional por serie y las sensaciones se solicitan al finalizar.
+- La carga planificada permanece disponible aunque la carga realizada cambie.
+- Un récord pendiente no altera porcentajes ni nivel hasta ser confirmado.
+- Cada variante conserva sus propios 1RM, 2RM, 3RM y 5RM.
+- La alerta describe datos observados y no realiza un diagnóstico médico.
+- Las estadísticas indican cuándo faltan sesiones, referencias o peso corporal, sin sustituir esos datos por estimaciones.
+
 ## 4. Requisitos no funcionales
 
 | ID | Área | Requisito |
@@ -181,8 +226,14 @@ Como autor, quiero conocer likes y preguntas y ver logros de uso.
 - Sin referencia, la carga sugerida es 0 kg y se muestra una advertencia.
 - El redondeo asistido utiliza incrementos de 2,5 kg.
 - Un intento fallido no aumenta una marca.
-- Solo una serie completada del movimiento canónico puede crear una marca automática; las variantes y los accesorios no se equiparan al levantamiento de competición.
-- Una marca automática debe superar el mejor registro histórico del mismo levantamiento y la finalización de la sesión no puede duplicarla.
+- Una serie satisfactoria de 1, 2, 3 o 5 repeticiones puede proponer una marca del ejercicio exacto; variantes y movimiento principal nunca se agregan.
+- Solo un 1RM confirmado de los cuatro movimientos canónicos actualiza `lift_records`, el nivel deportivo y los porcentajes de rutina.
+- Una marca detectada debe superar el mejor registro confirmado del mismo ejercicio y rango de repeticiones; finalizar de nuevo la sesión no puede duplicarla.
+- El 1RM estimado usa Epley (`peso × (1 + repeticiones / 30)`) para 2RM, 3RM y 5RM; el 1RM real no se transforma.
+- La alerta de caída requiere tres sesiones consecutivas con volumen planificado y una reducción acumulada mínima de diez puntos; es informativa y no médica.
+- La intensidad relativa solo incluye series cargadas con una marca compatible fechada el mismo día o antes; las series sin referencia se muestran como cobertura pendiente.
+- La distribución utiliza número de series satisfactorias, no tonelaje, para que la movilidad sin carga externa conserve representación.
+- La relación con el peso corporal usa el peso actual del perfil y se presenta como cociente, no como clasificación competitiva.
 - XP y logros no modifican el nivel deportivo ni prescriben carga.
 - Las recompensas usan claves únicas para evitar duplicados.
 - El avatar base64 debe proceder de una imagen válida, comprimida y limitada en tamaño.

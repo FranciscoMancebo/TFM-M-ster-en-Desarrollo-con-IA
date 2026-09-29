@@ -22,8 +22,9 @@ Las áreas cubiertas son:
 
 - perfiles, configuración, idioma y privacidad;
 - catálogo y enciclopedia;
-- marcas manuales, de configuración y detectadas al finalizar entrenamientos;
-- rutinas versionadas y días;
+- marcas manuales, de configuración y récords detectados de 1RM, 2RM, 3RM y 5RM por ejercicio;
+- RPE, carga planificada/realizada y sensaciones de recuperación por sesión;
+- rutinas versionadas, semanas diferentes y fases de acumulación, intensificación y descarga;
 - asignaciones, sesiones y series;
 - calendario semanal/mensual, reprogramación y adherencia;
 - comunidad, likes, preguntas y respuestas;
@@ -31,6 +32,7 @@ Las áreas cubiertas son:
 - perfiles públicos;
 - notificaciones, XP, niveles de cuenta y logros;
 - usuarios y rutinas ficticios para demostración.
+- exportación/borrado de cuenta y paginación remota de comunidad y notificaciones.
 
 ## Seguridad
 
@@ -50,10 +52,12 @@ La clave `service_role` no se utiliza en el navegador.
 npx.cmd supabase db lint --linked
 ```
 
-Las pruebas pgTAP cubren el corte vertical y RLS (`0001`), comunidad, privacidad y gamificación (`0002`), detección atómica de marcas desde sesiones (`0003`) y calendario/adherencia (`0004`). Se ejecutan con `npm.cmd run test:db` desde `web` cuando Docker Desktop puede iniciar la imagen `pg_prove`.
+Las pruebas pgTAP cubren el corte vertical y RLS (`0001`), comunidad, privacidad y gamificación (`0002`), detección canónica de marcas (`0003`), calendario/adherencia (`0004`), rendimiento y recuperación (`0005`), y privacidad de cuenta y paginación (`0006`). Se ejecutan con `npm.cmd run test:db` desde `web` cuando Docker Desktop puede iniciar la imagen `pg_prove`.
 
 ## Datos ficticios
 
 Las migraciones `202609240012` y `202609250001` crean diez identidades no interactivas, veinte rutinas públicas, progresiones fechadas, likes y preguntas. Sirven para la demostración y no representan usuarios reales.
+
+`202609290001_training_blocks.sql` materializa todas las semanas de las rutinas existentes, aplica fases y progresión a sus porcentajes, permite guardar semanas diferentes y conserva los bloques al importar una rutina pública. `202609290002_account_privacy_and_pagination.sql` incorpora exportación, borrado confirmado y páginas filtradas protegidas por autenticación/RLS. `202609290003_harden_account_export.sql` limita los datos de Auth exportables mediante una lista segura explícita.
 
 La guía completa está en [docs/08-guia-tecnica-y-operacion.md](../docs/08-guia-tecnica-y-operacion.md).

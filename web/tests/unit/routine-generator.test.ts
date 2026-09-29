@@ -38,6 +38,7 @@ const profile: UserProfile = {
   showTrainingData: false,
   showProgress: false,
   showPublicRoutines: false,
+  confirmDetectedRecords: true,
 };
 
 const techniqueExercises = [
@@ -70,8 +71,10 @@ describe('generateRoutineDraft', () => {
       language: 'es',
     });
 
-    expect(result.draft.days).toHaveLength(3);
-    expect(result.draft.days.flatMap((day) => day.exercises).every((item) => item.intensityValue === 0)).toBe(true);
+    expect(result.draft.weekPlans).toHaveLength(4);
+    expect(result.draft.weekPlans[0].days).toHaveLength(3);
+    expect(result.draft.weekPlans[0].days.flatMap((day) => day.exercises)
+      .every((item) => item.intensityType === 'percentage' && item.intensityValue > 0)).toBe(true);
     expect(result.summary.calculatedLoads).toBe(0);
     expect(result.summary.missingLoads).toEqual(expect.arrayContaining(['snatch', 'clean_and_jerk']));
   });
@@ -87,8 +90,8 @@ describe('generateRoutineDraft', () => {
       language: 'es',
     });
 
-    const loads = result.draft.days[0].exercises.map((item) => item.intensityValue);
-    expect(loads).toEqual([47.5, 57.5, 67.5, 55]);
+    const percentages = result.draft.weekPlans[0].days[0].exercises.map((item) => item.intensityValue);
+    expect(percentages).toEqual([45, 55, 55, 45]);
     expect(result.summary).toEqual({ knownLoads: 2, calculatedLoads: 4, missingLoads: [] });
   });
 
@@ -114,7 +117,7 @@ describe('generateRoutineDraft', () => {
       language: 'es',
     });
 
-    const selected = result.draft.days[0].exercises.map((item) => item.exerciseName);
+    const selected = result.draft.weekPlans[0].days[0].exercises.map((item) => item.exerciseName);
     expect(selected).toContain('arrancada-potencia');
     expect(selected).toContain('cargada-desde-hang');
     expect(selected).not.toContain('arrancada');
@@ -141,9 +144,9 @@ describe('generateRoutineDraft', () => {
       language: 'en',
     });
 
-    expect(tooFew.draft.days).toHaveLength(1);
+    expect(tooFew.draft.weekPlans[0].days).toHaveLength(1);
     expect(tooFew.draft.daysPerWeek).toBe(1);
-    expect(tooMany.draft.days).toHaveLength(7);
+    expect(tooMany.draft.weekPlans[0].days).toHaveLength(7);
     expect(tooMany.draft.daysPerWeek).toBe(7);
   });
 });

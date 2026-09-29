@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import NextImage from 'next/image';
-import { Bot, CheckCircle2, Download, Dumbbell, Globe2, Heart, Lock, MessageCircle, Pencil, Play, Plus, Send, SlidersHorizontal, Sparkles, Trash2, Users, X } from 'lucide-react';
+import { Bot, CheckCircle2, Download, Dumbbell, Globe2, Heart, Lock, MessageCircle, Pencil, Play, Plus, RotateCcw, Send, SlidersHorizontal, Sparkles, Trash2, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PublicAthleteProfileDialog } from '@/components/public-athlete-profile';
 import {
@@ -16,10 +16,11 @@ import { translateKnownText, useI18n } from '@/lib/i18n';
 import { workoutRepository } from '@/lib/workout/repository';
 import { liftDefinitions } from '@/lib/workout/lifts';
 import { generateRoutineDraft, type RoutineGenerationSummary } from '@/lib/workout/routine-generator';
+import { createTrainingWeeks, defaultDeloadReduction, rebaseWeekPercentage } from '@/lib/workout/training-blocks';
 import type {
   AthleteLevel, CommunityRoutine, ExerciseLibraryItem, LiftRecord, RoutineEditorDraft,
   RoutineFocus, RoutineQuestion, RoutineSummary, UserProfile,
-  RoutineDayDraft, PublicAthleteProfile,
+  RoutineDayDraft, PublicAthleteProfile, TrainingBlockPhase,
 } from '@/lib/workout/types';
 
 const levels: AthleteLevel[] = ['starter', 'beginner', 'intermediate', 'advanced'];
@@ -37,6 +38,12 @@ const focusNames: Record<RoutineFocus, [string, string]> = {
   strength: ['Fuerza', 'Strength'],
   technique: ['Técnica', 'Technique'],
   competition: ['Competición', 'Competition'],
+};
+
+const phaseNames: Record<TrainingBlockPhase, [string, string]> = {
+  accumulation: ['Acumulación', 'Accumulation'],
+  intensification: ['Intensificación', 'Intensification'],
+  deload: ['Descarga', 'Deload'],
 };
 
 function personInitials(name: string) {
@@ -57,6 +64,10 @@ function emptyDraft(profile: UserProfile, exercises: ExerciseLibraryItem[], lang
     restSeconds: 120,
     notes: '',
   }] : [];
+  const baseDays = Array.from({ length: daysPerWeek }, (_, index) => ({
+    name: `${language === 'es' ? 'Día' : 'Day'} ${index + 1}`,
+    exercises: initialExercise(),
+  }));
   return {
     routineId: null,
     title: '',
@@ -66,10 +77,9 @@ function emptyDraft(profile: UserProfile, exercises: ExerciseLibraryItem[], lang
     weeks: 4,
     daysPerWeek,
     visibility: 'private',
-    days: Array.from({ length: daysPerWeek }, (_, index) => ({
-      name: `${language === 'es' ? 'Día' : 'Day'} ${index + 1}`,
-      exercises: initialExercise(),
-    })),
+    deloadWeek: 4,
+    deloadReduction: defaultDeloadReduction,
+    weekPlans: createTrainingWeeks(baseDays, 4),
   };
 }
 
@@ -96,12 +106,14 @@ export function RoutineHub({
   const [tab, setTab] = useState<'mine' | 'community'>('mine');
   const [community, setCommunity] = useState<CommunityRoutine[]>([]);
   const [loadingCommunity, setLoadingCommunity] = useState(false);
+  const [communityHasMore, setCommunityHasMore] = useState(false);
   const [levelFilter, setLevelFilter] = useState<'all' | AthleteLevel>('all');
   const [focusFilter, setFocusFilter] = useState<'all' | RoutineFocus>('all');
   const [editorOpen, setEditorOpen] = useState(false);
   const [creationMode, setCreationMode] = useState<'manual' | 'assistant' | null>(null);
   const [draft, setDraft] = useState<RoutineEditorDraft>(() => emptyDraft(profile, exercises, language));
   const [generationSummary, setGenerationSummary] = useState<RoutineGenerationSummary | null>(null);
+  const [activeEditorWeek, setActiveEditorWeek] = useState(0);
   const [activeEditorDay, setActiveEditorDay] = useState(0);
   const [saving, setSaving] = useState(false);
   const [editingLoading, setEditingLoading] = useState(false);
@@ -118,21 +130,30 @@ export function RoutineHub({
   const [publicProfileLoading, setPublicProfileLoading] = useState(false);
   const [publicProfile, setPublicProfile] = useState<PublicAthleteProfile | null>(null);
 
-  async function refreshCommunity() {
+  async function refreshCommunity({
+    append = false,
+    level = levelFilter,
+    focus = focusFilter,
+  }: {
+    append?: boolean;
+    level?: typeof levelFilter;
+    focus?: typeof focusFilter;
+  } = {}) {
     setLoadingCommunity(true);
     try {
-      setCommunity(await workoutRepository.loadCommunityRoutines());
+      const loaded = await workoutRepository.loadCommunityRoutines({
+        offset: append ? community.length : 0,
+        level: level === 'all' ? null : level,
+        focus: focus === 'all' ? null : focus,
+      });
+      setCommunity((current) => append ? [...current, ...loaded.items] : loaded.items);
+      setCommunityHasMore(loaded.hasMore);
     } catch (error) {
       onError(error instanceof Error ? error.message : tr('No se pudo cargar la comunidad.', 'The community could not be loaded.'));
     } finally {
       setLoadingCommunity(false);
     }
   }
-
-  const visibleCommunity = useMemo(() => community.filter((routine) => (
-    (levelFilter === 'all' || routine.authorLevel === levelFilter)
-    && (focusFilter === 'all' || routine.focus === focusFilter)
-  )), [community, focusFilter, levelFilter]);
 
   function openCommunity() {
     setTab('community');
@@ -143,6 +164,7 @@ export function RoutineHub({
     setDraft(emptyDraft(profile, exercises, language));
     setCreationMode(null);
     setGenerationSummary(null);
+    setActiveEditorWeek(0);
     setActiveEditorDay(0);
     setEditorOpen(true);
   }
@@ -151,6 +173,7 @@ export function RoutineHub({
     setDraft(emptyDraft(profile, exercises, language));
     setCreationMode('manual');
     setGenerationSummary(null);
+    setActiveEditorWeek(0);
     setActiveEditorDay(0);
   }
 
@@ -168,6 +191,7 @@ export function RoutineHub({
     setDraft(generated.draft);
     setGenerationSummary(generated.summary);
     setCreationMode('assistant');
+    setActiveEditorWeek(0);
     setActiveEditorDay(0);
   }
 
@@ -178,6 +202,7 @@ export function RoutineHub({
       setDraft(await workoutRepository.loadRoutineForEdit(routine.id));
       setCreationMode('manual');
       setGenerationSummary(null);
+      setActiveEditorWeek(0);
       setActiveEditorDay(0);
       setEditorOpen(true);
     } catch (error) {
@@ -190,10 +215,13 @@ export function RoutineHub({
   function updateExercise(dayIndex: number, index: number, patch: Partial<RoutineDayDraft['exercises'][number]>) {
     setDraft((current) => ({
       ...current,
-      days: current.days.map((day, currentDayIndex) => currentDayIndex === dayIndex ? {
-        ...day,
-        exercises: day.exercises.map((exercise, exerciseIndex) => exerciseIndex === index ? { ...exercise, ...patch } : exercise),
-      } : day),
+      weekPlans: current.weekPlans.map((week, weekIndex) => weekIndex === activeEditorWeek ? {
+        ...week,
+        days: week.days.map((day, currentDayIndex) => currentDayIndex === dayIndex ? {
+          ...day,
+          exercises: day.exercises.map((exercise, exerciseIndex) => exerciseIndex === index ? { ...exercise, ...patch } : exercise),
+        } : day),
+      } : week),
     }));
   }
 
@@ -202,54 +230,117 @@ export function RoutineHub({
     if (!firstExercise) return;
     setDraft((current) => ({
       ...current,
-      days: current.days.map((day, currentDayIndex) => currentDayIndex === dayIndex ? {
-        ...day,
-        exercises: [...day.exercises, {
-          exerciseId: firstExercise.id,
-          exerciseName: firstExercise.name,
-          sets: 3,
-          repetitions: 3,
-          intensityType: 'load',
-          intensityValue: 0,
-          restSeconds: 120,
-          notes: '',
-        }],
-      } : day),
+      weekPlans: current.weekPlans.map((week, weekIndex) => weekIndex === activeEditorWeek ? {
+        ...week,
+        days: week.days.map((day, currentDayIndex) => currentDayIndex === dayIndex ? {
+          ...day,
+          exercises: [...day.exercises, {
+            exerciseId: firstExercise.id,
+            exerciseName: firstExercise.name,
+            sets: 3,
+            repetitions: 3,
+            intensityType: 'load',
+            intensityValue: 0,
+            restSeconds: 120,
+            notes: '',
+          }],
+        } : day),
+      } : week),
+    }));
+  }
+
+  function resizeWeeks(nextCount: number) {
+    const safeCount = Math.max(1, Math.min(52, nextCount));
+    setDraft((current) => {
+      const deloadWeek = current.deloadWeek && current.deloadWeek <= safeCount
+        ? current.deloadWeek
+        : safeCount >= 3 ? safeCount : null;
+      const generated = createTrainingWeeks(
+        current.weekPlans[0]?.days ?? [],
+        safeCount,
+        deloadWeek,
+        current.deloadReduction,
+      );
+      return {
+        ...current,
+        weeks: safeCount,
+        deloadWeek,
+        weekPlans: generated.map((week, index) => current.weekPlans[index]
+          ? { ...current.weekPlans[index], weekNumber: index + 1 }
+          : week),
+      };
+    });
+    setActiveEditorWeek((current) => Math.min(current, safeCount - 1));
+  }
+
+  function applyAutomaticProgression() {
+    setDraft((current) => ({
+      ...current,
+      weekPlans: createTrainingWeeks(
+        current.weekPlans[0]?.days ?? [],
+        current.weeks,
+        current.deloadWeek,
+        current.deloadReduction,
+      ),
+    }));
+    setActiveEditorWeek(0);
+    setActiveEditorDay(0);
+  }
+
+  function updateActiveWeekPhase(phase: TrainingBlockPhase) {
+    setDraft((current) => ({
+      ...current,
+      weekPlans: current.weekPlans.map((week, index) => index === activeEditorWeek ? { ...week, phase } : week),
+      deloadWeek: phase === 'deload'
+        ? activeEditorWeek + 1
+        : current.deloadWeek === activeEditorWeek + 1 ? null : current.deloadWeek,
+    }));
+  }
+
+  function updateActiveWeekAdjustment(nextAdjustment: number) {
+    setDraft((current) => ({
+      ...current,
+      weekPlans: current.weekPlans.map((week, index) => index === activeEditorWeek
+        ? rebaseWeekPercentage(week, Math.max(-40, Math.min(30, nextAdjustment)))
+        : week),
     }));
   }
 
   function resizeDays(nextCount: number) {
     const safeCount = Math.max(1, Math.min(7, nextCount));
     setDraft((current) => {
-      const days = current.days.slice(0, safeCount);
-      while (days.length < safeCount) days.push({ name: `${language === 'es' ? 'Día' : 'Day'} ${days.length + 1}`, exercises: [] });
-      return { ...current, daysPerWeek: safeCount, days };
+      const weekPlans = current.weekPlans.map((week) => {
+        const days = week.days.slice(0, safeCount);
+        while (days.length < safeCount) days.push({ name: `${language === 'es' ? 'Día' : 'Day'} ${days.length + 1}`, exercises: [] });
+        return { ...week, days };
+      });
+      return { ...current, daysPerWeek: safeCount, weekPlans };
     });
     setActiveEditorDay((current) => Math.min(current, safeCount - 1));
   }
 
   function addDay() {
-    if (draft.days.length >= 7) return;
-    const nextIndex = draft.days.length;
+    if (draft.daysPerWeek >= 7) return;
+    const nextIndex = draft.daysPerWeek;
     setDraft((current) => ({
       ...current,
-      daysPerWeek: current.days.length + 1,
-      days: [...current.days, { name: `${language === 'es' ? 'Día' : 'Day'} ${current.days.length + 1}`, exercises: [] }],
+      daysPerWeek: current.daysPerWeek + 1,
+      weekPlans: current.weekPlans.map((week) => ({ ...week, days: [...week.days, { name: `${language === 'es' ? 'Día' : 'Day'} ${week.days.length + 1}`, exercises: [] }] })),
     }));
     setActiveEditorDay(nextIndex);
   }
 
   function removeDay(dayIndex: number) {
-    if (draft.days.length <= 1) return;
+    if (draft.daysPerWeek <= 1) return;
     setDraft((current) => {
-      const days = current.days.filter((_, index) => index !== dayIndex);
-      return { ...current, daysPerWeek: days.length, days };
+      const weekPlans = current.weekPlans.map((week) => ({ ...week, days: week.days.filter((_, index) => index !== dayIndex) }));
+      return { ...current, daysPerWeek: current.daysPerWeek - 1, weekPlans };
     });
-    setActiveEditorDay((current) => Math.max(0, Math.min(current, draft.days.length - 2)));
+    setActiveEditorDay((current) => Math.max(0, Math.min(current, draft.daysPerWeek - 2)));
   }
 
   async function saveRoutine() {
-    if (!draft.title.trim() || draft.days.length === 0 || draft.days.some((day) => !day.name.trim() || day.exercises.length === 0)) {
+    if (!draft.title.trim() || draft.weekPlans.length !== draft.weeks || draft.weekPlans.some((week) => week.days.length !== draft.daysPerWeek || week.days.some((day) => !day.name.trim() || day.exercises.length === 0))) {
       onError(tr('Añade un título, un nombre y al menos un ejercicio en cada día.', 'Add a title, a name and at least one exercise to every day.'));
       return;
     }
@@ -412,6 +503,9 @@ export function RoutineHub({
     </div>;
   }
 
+  const activeWeek = draft.weekPlans[activeEditorWeek];
+  const activeDays = activeWeek?.days ?? [];
+
   return (
     <div className="page-wrap routines-page social-routines-page">
       <header className="top-bar">
@@ -451,12 +545,13 @@ export function RoutineHub({
       ) : (
         <>
           <section className="community-filters" aria-label={tr('Filtros de comunidad', 'Community filters')}>
-            <label><span>{tr('Nivel del autor', 'Author level')}</span><select value={levelFilter} onChange={(event) => setLevelFilter(event.target.value as typeof levelFilter)}><option value="all">{tr('Todos los niveles', 'All levels')}</option>{levels.map((level) => <option key={level} value={level}>{language === 'es' ? levelNames[level][0] : levelNames[level][1]}</option>)}</select></label>
-            <label><span>{tr('Enfoque', 'Focus')}</span><select value={focusFilter} onChange={(event) => setFocusFilter(event.target.value as typeof focusFilter)}><option value="all">{tr('Todos los enfoques', 'All focuses')}</option>{focuses.map((focus) => <option key={focus} value={focus}>{language === 'es' ? focusNames[focus][0] : focusNames[focus][1]}</option>)}</select></label>
-            <span className="community-result-count">{visibleCommunity.length} {tr('rutinas públicas', 'public routines')}</span>
+            <label><span>{tr('Nivel del autor', 'Author level')}</span><select value={levelFilter} onChange={(event) => { const level = event.target.value as typeof levelFilter; setLevelFilter(level); void refreshCommunity({ level }); }}><option value="all">{tr('Todos los niveles', 'All levels')}</option>{levels.map((level) => <option key={level} value={level}>{language === 'es' ? levelNames[level][0] : levelNames[level][1]}</option>)}</select></label>
+            <label><span>{tr('Enfoque', 'Focus')}</span><select value={focusFilter} onChange={(event) => { const focus = event.target.value as typeof focusFilter; setFocusFilter(focus); void refreshCommunity({ focus }); }}><option value="all">{tr('Todos los enfoques', 'All focuses')}</option>{focuses.map((focus) => <option key={focus} value={focus}>{language === 'es' ? focusNames[focus][0] : focusNames[focus][1]}</option>)}</select></label>
+            <span className="community-result-count">{community.length}{communityHasMore ? '+' : ''} {tr('rutinas públicas', 'public routines')}</span>
           </section>
-          {loadingCommunity ? <div className="history-empty"><p>{tr('Cargando comunidad…', 'Loading community…')}</p></div> : visibleCommunity.length ? <section className="community-grid">
-            {visibleCommunity.map((routine) => {
+          {loadingCommunity && community.length === 0 ? <div className="history-empty"><p>{tr('Cargando comunidad…', 'Loading community…')}</p></div> : community.length ? <>
+          <section className="community-grid">
+            {community.map((routine) => {
               const expanded = questionsFor === routine.versionId;
               const importedCopy = routines.find((item) => item.sourceVersionId === routine.versionId);
               return <article className="community-routine-card" key={routine.versionId}>
@@ -467,7 +562,9 @@ export function RoutineHub({
                 {expanded && renderConversation(routine.versionId, routine.authorId)}
               </article>;
             })}
-          </section> : <div className="history-empty"><Globe2 aria-hidden="true" /><h3>{tr('No hay rutinas con estos filtros', 'No routines match these filters')}</h3><p>{tr('Cambia el nivel o el enfoque para descubrir más rutinas.', 'Change the level or focus to discover more routines.')}</p></div>}
+          </section>
+          {communityHasMore && <div className="community-pagination"><Button variant="outline" disabled={loadingCommunity} onClick={() => void refreshCommunity({ append: true })}>{loadingCommunity ? tr('Cargando…', 'Loading…') : tr('Cargar más rutinas', 'Load more routines')}</Button></div>}
+          </> : <div className="history-empty"><Globe2 aria-hidden="true" /><h3>{tr('No hay rutinas con estos filtros', 'No routines match these filters')}</h3><p>{tr('Cambia el nivel o el enfoque para descubrir más rutinas.', 'Change the level or focus to discover more routines.')}</p></div>}
         </>
       )}
 
@@ -492,13 +589,13 @@ export function RoutineHub({
           ) : (
             <div className="routine-editor-scroll">
               {creationMode === 'assistant' && generationSummary && <section className="routine-assistant-panel">
-                <div className="routine-assistant-heading"><span><Bot aria-hidden="true" /></span><div><strong>{tr('Propuesta del asistente por reglas', 'Rule-based assistant proposal')}</strong><p>{tr('Las cargas se han redondeado a discos de 2,5 kg. Puedes editar cualquier resultado antes de guardarlo.', 'Loads have been rounded to 2.5 kg plates. You can edit every result before saving.')}</p></div></div>
+                <div className="routine-assistant-heading"><span><Bot aria-hidden="true" /></span><div><strong>{tr('Propuesta del asistente por reglas', 'Rule-based assistant proposal')}</strong><p>{tr('Los porcentajes progresan por bloques y la carga se recalcula con tu marca más reciente. Puedes editar cualquier semana.', 'Percentages progress by block and the load is recalculated from your latest result. You can edit every week.')}</p></div></div>
                 <div className="routine-assistant-facts">
                   <span><strong>{language === 'es' ? levelNames[profile.level][0] : levelNames[profile.level][1]}</strong>{tr('Nivel del perfil', 'Profile level')}</span>
                   <span><strong>{generationSummary.knownLoads}/4</strong>{tr('Marcas conocidas', 'Known results')}</span>
                   <span><strong>{generationSummary.calculatedLoads}</strong>{tr('Cargas calculadas', 'Calculated loads')}</span>
                 </div>
-                {generationSummary.missingLoads.length > 0 && <p className="routine-assistant-warning">{tr('Sin marca de referencia:', 'Missing reference result:')} {generationSummary.missingLoads.map((lift) => translateKnownText(language, liftDefinitions.find((item) => item.id === lift)?.shortLabel ?? lift)).join(', ')}. {tr('Esos ejercicios se dejan a 0 kg para que elijas una carga técnica.', 'Those exercises remain at 0 kg so you can choose a technical load.')}</p>}
+                {generationSummary.missingLoads.length > 0 && <p className="routine-assistant-warning">{tr('Sin marca de referencia:', 'Missing reference result:')} {generationSummary.missingLoads.map((lift) => translateKnownText(language, liftDefinitions.find((item) => item.id === lift)?.shortLabel ?? lift)).join(', ')}. {tr('El porcentaje queda preparado, pero la app no propondrá kilos hasta que registres esa marca.', 'The percentage remains configured, but the app will not suggest kilograms until you record that result.')}</p>}
                 <div className="routine-assistant-regenerate"><span>{tr('Cambia enfoque, semanas o días abajo y vuelve a generar la propuesta.', 'Change focus, weeks or days below and regenerate the proposal.')}</span><Button variant="outline" size="sm" onClick={() => generateAssistedRoutine(draft)}><Sparkles aria-hidden="true" />{tr('Volver a generar', 'Regenerate')}</Button></div>
               </section>}
               <div className="routine-editor-fields">
@@ -506,22 +603,40 @@ export function RoutineHub({
                 <label className="editor-wide"><span>{tr('Descripción', 'Description')}</span><textarea maxLength={2000} rows={3} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></label>
                 <label><span>{tr('Nivel de la rutina', 'Routine level')}</span><select value={draft.level} onChange={(event) => setDraft({ ...draft, level: event.target.value as AthleteLevel })}>{levels.map((level) => <option key={level} value={level}>{language === 'es' ? levelNames[level][0] : levelNames[level][1]}</option>)}</select></label>
                 <label><span>{tr('Enfoque', 'Focus')}</span><select value={draft.focus} onChange={(event) => setDraft({ ...draft, focus: event.target.value as RoutineFocus })}>{focuses.map((focus) => <option key={focus} value={focus}>{language === 'es' ? focusNames[focus][0] : focusNames[focus][1]}</option>)}</select></label>
-                <label><span>{tr('Semanas', 'Weeks')}</span><input type="number" min={1} max={52} value={draft.weeks} onChange={(event) => setDraft({ ...draft, weeks: Number(event.target.value) })} /></label>
+                <label><span>{tr('Semanas', 'Weeks')}</span><input type="number" min={1} max={52} value={draft.weeks} onChange={(event) => resizeWeeks(Number(event.target.value))} /></label>
                 <label><span>{tr('Días por semana', 'Days per week')}</span><input type="number" min={1} max={7} value={draft.daysPerWeek} onChange={(event) => resizeDays(Number(event.target.value))} /></label>
                 <label className="editor-wide"><span>{tr('Visibilidad', 'Visibility')}</span><select value={draft.visibility} onChange={(event) => setDraft({ ...draft, visibility: event.target.value as RoutineEditorDraft['visibility'] })}><option value="private">{tr('Privada · solo yo', 'Private · only me')}</option><option value="public">{tr('Pública · visible en Comunidad', 'Public · visible in Community')}</option></select></label>
               </div>
-              <section className="routine-day-editor">
-                <div className="routine-day-tabs" role="tablist" aria-label={tr('Días de la rutina', 'Routine days')}>
-                  {draft.days.map((day, index) => <button type="button" role="tab" aria-selected={activeEditorDay === index} className={activeEditorDay === index ? 'is-active' : ''} onClick={() => setActiveEditorDay(index)} key={`${day.name}-${index}`}><span>{tr('Día', 'Day')} {index + 1}</span><strong>{day.name}</strong></button>)}
-                  {draft.days.length < 7 && <button type="button" className="add-routine-day" onClick={addDay}><Plus aria-hidden="true" /><span>{tr('Añadir día', 'Add day')}</span></button>}
+              <section className="training-block-editor">
+                <div className="training-block-heading">
+                  <div><p className="eyebrow">{tr('Periodización', 'Periodisation')}</p><strong>{tr('Bloques de entrenamiento', 'Training blocks')}</strong><span>{tr('Cada semana puede tener sesiones y porcentajes distintos.', 'Every week can have different sessions and percentages.')}</span></div>
+                  <Button type="button" variant="outline" size="sm" onClick={applyAutomaticProgression}><RotateCcw aria-hidden="true" />{tr('Aplicar progresión', 'Apply progression')}</Button>
                 </div>
-                {draft.days[activeEditorDay] && <div className="routine-day-name">
-                  <label><span>{tr('Nombre del día', 'Day name')}</span><input maxLength={100} value={draft.days[activeEditorDay].name} onChange={(event) => setDraft((current) => ({ ...current, days: current.days.map((day, index) => index === activeEditorDay ? { ...day, name: event.target.value } : day) }))} /></label>
-                  {draft.days.length > 1 && <Button variant="ghost" className="danger-action" onClick={() => removeDay(activeEditorDay)}><Trash2 aria-hidden="true" />{tr('Eliminar día', 'Delete day')}</Button>}
+                <div className="training-block-settings">
+                  <label><span>{tr('Semana de descarga', 'Deload week')}</span><select value={draft.deloadWeek ?? ''} onChange={(event) => setDraft((current) => ({ ...current, deloadWeek: event.target.value ? Number(event.target.value) : null }))}><option value="">{tr('Sin descarga', 'No deload')}</option>{draft.weekPlans.map((week) => <option key={week.weekNumber} value={week.weekNumber}>{tr('Semana', 'Week')} {week.weekNumber}</option>)}</select></label>
+                  <label><span>{tr('Reducción en descarga', 'Deload reduction')}</span><div className="block-unit-input"><input type="number" min={5} max={40} value={draft.deloadReduction} onChange={(event) => setDraft({ ...draft, deloadReduction: Math.max(5, Math.min(40, Number(event.target.value))) })} /><small>p.p.</small></div></label>
+                  <p>{tr('La progresión suma puntos porcentuales sobre la semana base. Solo modifica ejercicios configurados en %.', 'Progression adds percentage points to the base week. It only changes exercises configured as %.')}</p>
+                </div>
+                <div className="routine-week-tabs" role="tablist" aria-label={tr('Semanas de la rutina', 'Routine weeks')}>
+                  {draft.weekPlans.map((week, index) => <button type="button" role="tab" aria-selected={activeEditorWeek === index} className={`is-${week.phase}${activeEditorWeek === index ? ' is-active' : ''}`} onClick={() => { setActiveEditorWeek(index); setActiveEditorDay(0); }} key={week.weekNumber}><span>{tr('Semana', 'Week')} {week.weekNumber}</span><strong>{language === 'es' ? phaseNames[week.phase][0] : phaseNames[week.phase][1]}</strong><small>{week.percentageAdjustment > 0 ? '+' : ''}{week.percentageAdjustment} p.p.</small></button>)}
+                </div>
+                {activeWeek && <div className="active-week-settings">
+                  <label><span>{tr('Fase de esta semana', 'Phase for this week')}</span><select value={activeWeek.phase} onChange={(event) => updateActiveWeekPhase(event.target.value as TrainingBlockPhase)}>{(Object.keys(phaseNames) as TrainingBlockPhase[]).map((phase) => <option value={phase} key={phase}>{language === 'es' ? phaseNames[phase][0] : phaseNames[phase][1]}</option>)}</select></label>
+                  <label><span>{tr('Ajuste sobre la base', 'Adjustment from base')}</span><div className="block-unit-input"><input type="number" min={-40} max={30} value={activeWeek.percentageAdjustment} onChange={(event) => updateActiveWeekAdjustment(Number(event.target.value))} /><small>p.p.</small></div></label>
                 </div>}
               </section>
-              <section className="routine-exercise-editor"><div><div><p className="eyebrow">{tr('Ejercicios del día', 'Exercises for this day')}</p><strong>{draft.days[activeEditorDay]?.name}</strong></div><Button variant="outline" size="sm" onClick={() => addExercise(activeEditorDay)}><Plus aria-hidden="true" />{tr('Añadir ejercicio', 'Add exercise')}</Button></div>
-                {(draft.days[activeEditorDay]?.exercises ?? []).map((exercise, index) => <article key={`${exercise.exerciseId}-${index}`}>
+              <section className="routine-day-editor">
+                <div className="routine-day-tabs" role="tablist" aria-label={tr('Días de la rutina', 'Routine days')}>
+                  {activeDays.map((day, index) => <button type="button" role="tab" aria-selected={activeEditorDay === index} className={activeEditorDay === index ? 'is-active' : ''} onClick={() => setActiveEditorDay(index)} key={`${day.name}-${index}`}><span>{tr('Día', 'Day')} {index + 1}</span><strong>{day.name}</strong></button>)}
+                  {activeDays.length < 7 && <button type="button" className="add-routine-day" onClick={addDay}><Plus aria-hidden="true" /><span>{tr('Añadir día', 'Add day')}</span></button>}
+                </div>
+                {activeDays[activeEditorDay] && <div className="routine-day-name">
+                  <label><span>{tr('Nombre del día', 'Day name')}</span><input maxLength={100} value={activeDays[activeEditorDay].name} onChange={(event) => setDraft((current) => ({ ...current, weekPlans: current.weekPlans.map((week, weekIndex) => weekIndex === activeEditorWeek ? { ...week, days: week.days.map((day, index) => index === activeEditorDay ? { ...day, name: event.target.value } : day) } : week) }))} /></label>
+                  {activeDays.length > 1 && <Button variant="ghost" className="danger-action" onClick={() => removeDay(activeEditorDay)}><Trash2 aria-hidden="true" />{tr('Eliminar día', 'Delete day')}</Button>}
+                </div>}
+              </section>
+              <section className="routine-exercise-editor"><div><div><p className="eyebrow">{tr('Ejercicios del día', 'Exercises for this day')}</p><strong>{activeDays[activeEditorDay]?.name}</strong></div><Button variant="outline" size="sm" onClick={() => addExercise(activeEditorDay)}><Plus aria-hidden="true" />{tr('Añadir ejercicio', 'Add exercise')}</Button></div>
+                {(activeDays[activeEditorDay]?.exercises ?? []).map((exercise, index) => <article key={`${exercise.exerciseId}-${index}`}>
                   <span className="editor-exercise-number">{(index + 1).toString().padStart(2, '0')}</span>
                   <label className="exercise-select"><span>{tr('Ejercicio', 'Exercise')}</span><select value={exercise.exerciseId} onChange={(event) => { const selected = exercises.find((item) => item.id === event.target.value); updateExercise(activeEditorDay, index, { exerciseId: event.target.value, exerciseName: selected?.name ?? '' }); }}>{exercises.map((item) => <option key={item.id} value={item.id}>{translateKnownText(language, item.name)}</option>)}</select></label>
                   <label><span>{tr('Series', 'Sets')}</span><input type="number" min={1} max={30} value={exercise.sets} onChange={(event) => updateExercise(activeEditorDay, index, { sets: Number(event.target.value) })} /></label>
@@ -530,9 +645,9 @@ export function RoutineHub({
                   <label><span>{exercise.intensityType === 'load' ? 'kg' : '%'}</span><input type="number" min={0} max={600} step="0.5" value={exercise.intensityValue} onChange={(event) => updateExercise(activeEditorDay, index, { intensityValue: Number(event.target.value) })} /></label>
                   <label><span>{tr('Descanso (s)', 'Rest (s)')}</span><input type="number" min={0} max={3600} step={15} value={exercise.restSeconds} onChange={(event) => updateExercise(activeEditorDay, index, { restSeconds: Number(event.target.value) })} /></label>
                   <label className="exercise-notes"><span>{tr('Notas', 'Notes')}</span><input maxLength={1000} value={exercise.notes} onChange={(event) => updateExercise(activeEditorDay, index, { notes: event.target.value })} /></label>
-                  <button type="button" className="remove-exercise" aria-label={tr('Quitar ejercicio', 'Remove exercise')} onClick={() => setDraft((current) => ({ ...current, days: current.days.map((day, dayIndex) => dayIndex === activeEditorDay ? { ...day, exercises: day.exercises.filter((_, exerciseIndex) => exerciseIndex !== index) } : day) }))}><X aria-hidden="true" /></button>
+                  <button type="button" className="remove-exercise" aria-label={tr('Quitar ejercicio', 'Remove exercise')} onClick={() => setDraft((current) => ({ ...current, weekPlans: current.weekPlans.map((week, weekIndex) => weekIndex === activeEditorWeek ? { ...week, days: week.days.map((day, dayIndex) => dayIndex === activeEditorDay ? { ...day, exercises: day.exercises.filter((_, exerciseIndex) => exerciseIndex !== index) } : day) } : week) }))}><X aria-hidden="true" /></button>
                 </article>)}
-                {draft.days[activeEditorDay]?.exercises.length === 0 && <div className="routine-day-empty"><Dumbbell aria-hidden="true" /><p>{tr('Añade al menos un ejercicio a este día.', 'Add at least one exercise to this day.')}</p><Button variant="outline" size="sm" onClick={() => addExercise(activeEditorDay)}><Plus aria-hidden="true" />{tr('Añadir ejercicio', 'Add exercise')}</Button></div>}
+                {activeDays[activeEditorDay]?.exercises.length === 0 && <div className="routine-day-empty"><Dumbbell aria-hidden="true" /><p>{tr('Añade al menos un ejercicio a este día.', 'Add at least one exercise to this day.')}</p><Button variant="outline" size="sm" onClick={() => addExercise(activeEditorDay)}><Plus aria-hidden="true" />{tr('Añadir ejercicio', 'Add exercise')}</Button></div>}
               </section>
             </div>
           )}

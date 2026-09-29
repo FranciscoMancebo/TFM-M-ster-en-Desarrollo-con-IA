@@ -8,7 +8,7 @@ La propuesta se apoya en cuatro pilares concebidos como una experiencia única:
 
 1. **Personalización inicial:** el sistema conoce disponibilidad, medidas, experiencia, objetivos y marcas antes de sugerir una planificación.
 2. **Entrenamiento utilizable:** las rutinas se ejecutan por días y las series se registran con poca fricción.
-3. **Progreso comprensible:** las marcas se conservan con fecha y se representan en gráficos.
+3. **Progreso comprensible:** las marcas se conservan por ejercicio y rango de repeticiones, se representan en gráficos y se interpretan junto al esfuerzo y la recuperación.
 4. **Comunidad con control:** cada atleta decide qué publica, puede reutilizar rutinas ajenas y mantiene la procedencia del contenido.
 
 ## 2. Problema
@@ -18,6 +18,7 @@ Quien practica halterofilia suele repartir su información entre hojas de cálcu
 - relacionar marcas de referencia con las cargas programadas;
 - adaptar el tipo de trabajo al nivel técnico real;
 - registrar intentos sin interrumpir el entrenamiento;
+- comparar la sesión planificada con lo realmente ejecutado y sus sensaciones;
 - visualizar la evolución de los movimientos principales;
 - descubrir rutinas adecuadas por nivel y enfoque;
 - reutilizar contenido sin perder autoría;
@@ -52,8 +53,8 @@ Diseñar, implementar y evaluar una aplicación web especializada en halterofili
 1. Modelar perfiles, niveles, marcas, ejercicios, rutinas versionadas, días, sesiones e interacciones sociales.
 2. Proponer cargas solo a partir de referencias compatibles y explicar la ausencia de datos.
 3. Permitir crear rutinas manualmente o mediante reglas deterministas revisables.
-4. Registrar sesiones desde móvil y conservar intentos, carga, repeticiones y resultado.
-5. Mostrar evolución fechada de sentadilla, sentadilla frontal, arrancada y dos tiempos.
+4. Registrar sesiones desde móvil y conservar intentos, carga planificada/realizada, repeticiones, RPE y sensaciones.
+5. Mostrar evolución fechada, récords por repeticiones y estimaciones diferenciadas de sentadilla, sentadilla frontal, arrancada, dos tiempos y sus variantes.
 6. Permitir publicar, descubrir, importar y activar rutinas sin perder procedencia.
 7. Dar al usuario control granular sobre perfil, datos de entrenamiento, progreso y rutinas.
 8. Reforzar adherencia mediante notificaciones, experiencia y logros sin convertirlos en criterio deportivo.
@@ -88,7 +89,8 @@ Diseñar, implementar y evaluar una aplicación web especializada en halterofili
 - Series, repeticiones, carga o porcentaje, descanso y notas.
 - Activación exclusiva de una rutina por usuario.
 - Sesión activa con pausa, reanudación y estado por serie.
-- Resumen de volumen, duración y resultados.
+- RPE por serie y cierre con dolor, fatiga, sensación general y notas.
+- Resumen de volumen planificado/realizado, rendimiento, duración y resultados.
 
 ### Aprendizaje y progreso
 
@@ -96,6 +98,9 @@ Diseñar, implementar y evaluar una aplicación web especializada en halterofili
 - Variantes desde hang, bloques, potencia, pausa, tempo, déficit, complejos y auxiliares.
 - Descripción, enfoque, claves técnicas, material y espacio para vídeo.
 - Registro fechado y gráficos de las cuatro marcas de referencia.
+- 1RM, 2RM, 3RM y 5RM por ejercicio, confirmación opcional y estimación explícita de 1RM.
+- Aviso descriptivo ante una caída sostenida del rendimiento de varias sesiones.
+- Estadísticas de volumen semanal, intensidad relativa, distribución fuerza/técnica/movilidad, total olímpico y relación con el peso corporal.
 
 ### Comunidad
 

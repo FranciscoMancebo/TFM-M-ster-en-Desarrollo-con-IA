@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Bell, CheckCheck, Heart, MessageCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -16,21 +16,40 @@ export function NotificationCenter({ onOpenRoutines }: { onOpenRoutines: () => v
   const { language, locale, tr } = useI18n();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
-  const unread = useMemo(() => notifications.filter((notification) => !notification.readAt).length, [notifications]);
-
   const refresh = useCallback(async () => {
     try {
-      const loaded = await workoutRepository.loadNotifications();
+      const [loaded, unreadCount] = await Promise.all([
+        workoutRepository.loadNotifications(),
+        workoutRepository.countUnreadNotifications(),
+      ]);
       setError('');
-      setNotifications(loaded);
+      setNotifications(loaded.items);
+      setHasMore(loaded.hasMore);
+      setUnread(unreadCount);
     } catch {
       setError(language === 'es' ? 'No se pudieron cargar las notificaciones.' : 'Notifications could not be loaded.');
     } finally {
       setLoading(false);
     }
   }, [language]);
+
+  async function loadMore() {
+    setLoadingMore(true);
+    try {
+      const loaded = await workoutRepository.loadNotifications(notifications.length);
+      setNotifications((current) => [...current, ...loaded.items]);
+      setHasMore(loaded.hasMore);
+    } catch {
+      setError(tr('No se pudieron cargar más notificaciones.', 'More notifications could not be loaded.'));
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   useEffect(() => {
     const initialTimer = window.setTimeout(() => void refresh(), 0);
@@ -46,6 +65,7 @@ export function NotificationCenter({ onOpenRoutines }: { onOpenRoutines: () => v
       setNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, readAt: new Date().toISOString() } : item));
       try {
         await workoutRepository.markNotificationsRead([notification.id]);
+        setUnread((current) => Math.max(0, current - 1));
       } catch {
         setError(tr('No se pudo marcar como leída.', 'The notification could not be marked as read.'));
         return;
@@ -60,6 +80,7 @@ export function NotificationCenter({ onOpenRoutines }: { onOpenRoutines: () => v
       await workoutRepository.markNotificationsRead();
       const readAt = new Date().toISOString();
       setNotifications((current) => current.map((notification) => ({ ...notification, readAt: notification.readAt ?? readAt })));
+      setUnread(0);
     } catch {
       setError(tr('No se pudieron actualizar las notificaciones.', 'Notifications could not be updated.'));
     }
@@ -79,6 +100,7 @@ export function NotificationCenter({ onOpenRoutines }: { onOpenRoutines: () => v
           <span className={notification.type === 'routine_like' ? 'notification-kind is-like' : 'notification-kind'}>{notification.type === 'routine_like' ? <Heart aria-hidden="true" fill="currentColor" /> : <MessageCircle aria-hidden="true" />}</span>
         </button>) : <div className="notification-empty"><Bell aria-hidden="true" /><p>{tr('No tienes notificaciones todavía.', 'You do not have any notifications yet.')}</p></div>}
       </div>
+      {hasMore && !error && <footer className="notification-pagination"><button type="button" disabled={loadingMore} onClick={() => void loadMore()}>{loadingMore ? tr('Cargando…', 'Loading…') : tr('Cargar anteriores', 'Load earlier')}</button></footer>}
     </PopoverContent>
   </Popover>;
 }

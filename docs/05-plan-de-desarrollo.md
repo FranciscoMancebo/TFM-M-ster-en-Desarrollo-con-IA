@@ -36,6 +36,9 @@ El proyecto sigue entregas verticales: cada incremento incorpora interfaz, regla
 | Español/inglés | Implementada | `i18n.tsx` y preferencia persistida |
 | Entrenador por reglas | Implementada | `coach-assistant.tsx` |
 | Calendario y adherencia | Implementada | migración `202609280002`, `training-calendar.tsx` y pruebas de fechas |
+| Rendimiento y recuperación | Implementada | migración `202609280003`, `performance.ts` y diálogo de cierre |
+| Récords por ejercicio y repeticiones | Implementada | `exercise_records`, `performance-records.tsx` y pgTAP `0005` |
+| Estadísticas avanzadas | Implementada | `statistics.ts`, `advanced-statistics.tsx` y pruebas unitarias |
 | Suite automatizada inicial | Implementada | Vitest, Playwright y pgTAP |
 | Suite funcional/E2E completa | En curso | faltan sesiones, rutinas e importación |
 | Evaluación con usuarios | Pendiente | protocolo definido |
@@ -76,6 +79,11 @@ El proyecto sigue entregas verticales: cada incremento incorpora interfaz, regla
 - variantes técnicas;
 - registro de marcas desde gráfico;
 - detección automática de nuevas marcas al finalizar sesiones;
+- confirmación configurable, récords 1RM/2RM/3RM/5RM y estimación de 1RM;
+- récords separados para cada variante;
+- RPE por serie, sensaciones de cierre y comparación planificado/realizado;
+- aviso de caída sostenida de rendimiento;
+- volumen por ejercicio/semana, intensidad relativa, distribución, total olímpico y cocientes corporales;
 - evolución fechada;
 - entrenador contextual.
 

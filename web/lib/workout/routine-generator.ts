@@ -11,6 +11,7 @@ import type {
   RoutineFocus,
   UserProfile,
 } from './types';
+import { createTrainingWeeks, defaultDeloadReduction } from './training-blocks';
 
 type ExerciseRule = {
   slugs: string[];
@@ -151,8 +152,8 @@ export function generateRoutineDraft({
       exerciseName: libraryExercise.name,
       sets: rule.sets,
       repetitions: rule.repetitions,
-      intensityType: 'load',
-      intensityValue: calculatedLoad,
+      intensityType: adjustedPercentage === undefined ? 'load' : 'percentage',
+      intensityValue: adjustedPercentage ?? 0,
       restSeconds: rule.restSeconds,
       notes: `${language === 'es' ? rule.noteEs : rule.noteEn} ${calculationNote}`,
     }];
@@ -186,7 +187,9 @@ export function generateRoutineDraft({
       weeks,
       daysPerWeek: safeDayCount,
       visibility: 'private',
-      days: generatedDays,
+      deloadWeek: weeks >= 3 ? weeks : null,
+      deloadReduction: defaultDeloadReduction,
+      weekPlans: createTrainingWeeks(generatedDays, weeks),
     },
     summary: {
       knownLoads: latest.size,

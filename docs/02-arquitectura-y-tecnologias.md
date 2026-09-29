@@ -95,11 +95,28 @@ Las versiones exactas están bloqueadas en `web/package-lock.json`.
 ### Finalización de sesión y nuevas marcas
 
 1. La UI sincroniza las series editadas antes de solicitar la finalización.
-2. `finish_workout_session()` bloquea y valida que la sesión activa pertenece al usuario autenticado.
-3. La función completa la sesión y agrupa la carga máxima de las series satisfactorias de los cuatro movimientos canónicos.
-4. Cada candidata se compara con el máximo histórico del mismo levantamiento; variantes e intentos fallidos quedan fuera.
-5. Las mejoras se guardan en `lift_records` con origen `workout` y se devuelven al resumen en la misma transacción.
-6. La UI refresca historial, gráficos, nivel deportivo y la siguiente sesión con las nuevas referencias.
+2. El diálogo de cierre recoge dolor, fatiga, sensación general y notas; `finish_workout_session_v2()` valida propiedad y rangos.
+3. La función completa la sesión y obtiene la mejor serie satisfactoria de 1, 2, 3 y 5 repeticiones para cada ejercicio exacto.
+4. Cada candidata se compara con los récords confirmados del mismo ejercicio y repeticiones; los intentos fallidos quedan fuera.
+5. La preferencia del perfil decide si la mejora queda `pending` o `confirmed`. La UI permite confirmar o descartar pendientes.
+6. Los récords de repeticiones incluyen una estimación Epley de 1RM. Solo un 1RM confirmado de un movimiento canónico sincroniza `lift_records`.
+7. La UI refresca historial, panel de récords, nivel deportivo y referencias de carga después de una confirmación aplicable.
+
+### Rendimiento y recuperación
+
+1. Cada serie conserva carga y repeticiones planificadas además de los valores realmente ejecutados y el RPE opcional.
+2. El historial calcula volumen planificado y realizado, porcentaje de cumplimiento y RPE medio sin alterar los datos originales.
+3. Una regla pura examina las tres sesiones más recientes con planificación comparable.
+4. Se muestra un aviso si los tres porcentajes descienden y la caída acumulada alcanza diez puntos; el aviso es descriptivo, no diagnóstico.
+
+### Estadísticas avanzadas
+
+1. El repositorio incorpora a cada serie histórica el ejercicio, su categoría y la referencia canónica compatible.
+2. `statistics.ts` agrupa en cliente los datos privados ya autorizados; no duplica agregados persistentes ni amplía permisos.
+3. El volumen se agrupa por lunes y ejercicio, y la distribución cuenta series satisfactorias clasificadas como fuerza, técnica o movilidad.
+4. La intensidad usa la última marca compatible cuya fecha no sea posterior a la sesión y se pondera por repeticiones.
+5. La línea del total olímpico recorre las fechas de arrancada y dos tiempos conservando el último valor conocido de cada movimiento.
+6. Las relaciones corporales dividen las últimas marcas y el total por el peso actual configurado en el perfil.
 
 ### Calendario y adherencia
 
@@ -108,6 +125,18 @@ Las versiones exactas están bloqueadas en `web/package-lock.json`.
 3. Al iniciar un entrenamiento, `link_workout_session_to_calendar()` enlaza la sesión activa con el evento de hoy.
 4. Al finalizar la sesión, un trigger completa el evento enlazado en la misma base de datos.
 5. `my_adherence_summary()` calcula completados, pendientes, omitidos, porcentaje vencido, racha y semanas perfectas.
+
+### Periodización de rutinas
+
+Cada `routine_version` materializa todos sus días por `week_number`. `routine_days.phase` identifica acumulación, intensificación o descarga, y `percentage_adjustment` documenta los puntos aplicados respecto a la semana base. El generador es determinista: clona la estructura base, progresa únicamente prescripciones en porcentaje y conserva sin cambios las cargas absolutas. Las rutinas anteriores se expanden al aplicar la migración `202609290001`; el lector mantiene además un fallback a la semana 1 para versiones incompletas.
+
+### Gestión de cuenta y privacidad
+
+La recuperación utiliza `resetPasswordForEmail`, el evento `PASSWORD_RECOVERY` y `updateUser`; la contraseña nunca pasa por tablas propias. `export_my_data()` construye una instantánea JSON exclusivamente para `auth.uid()`. `delete_my_account()` exige que el correo confirmado coincida con el de `auth.users` y elimina esa identidad, apoyándose en claves foráneas con cascada para los datos personales.
+
+### Paginación y rendimiento del cliente
+
+`community_routines_page` aplica filtros, límite y desplazamiento antes de transferir datos. `my_notifications_page` devuelve páginas cronológicas y el contador de no leídas usa un `count` separado protegido por RLS. Las vistas de rutinas, calendario, entrenador, enciclopedia, logros y estadísticas se cargan mediante `React.lazy`; el script `scripts/check-bundle-size.mjs` mide todos los chunks cliente en bruto y gzip después del build.
 6. Los cambios relevantes disparan la evaluación idempotente de logros de constancia.
 
 ## 6. Seguridad y privacidad

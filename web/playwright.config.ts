@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const authenticatedSupabaseUrl = process.env.E2E_SUPABASE_URL;
+const authenticatedSupabaseKey = process.env.E2E_SUPABASE_PUBLISHABLE_KEY;
+
 export default defineConfig({
   testDir: './tests/e2e',
   expect: { timeout: 15_000 },
@@ -22,8 +25,8 @@ export default defineConfig({
     command: 'npm run dev -- --port 4173',
     url: 'http://localhost:4173',
     env: {
-      VITE_SUPABASE_URL: 'http://127.0.0.1:54321',
-      VITE_SUPABASE_PUBLISHABLE_KEY: 'playwright-public-test-key',
+      VITE_SUPABASE_URL: authenticatedSupabaseUrl ?? 'http://127.0.0.1:54321',
+      VITE_SUPABASE_PUBLISHABLE_KEY: authenticatedSupabaseKey ?? 'playwright-public-test-key',
     },
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

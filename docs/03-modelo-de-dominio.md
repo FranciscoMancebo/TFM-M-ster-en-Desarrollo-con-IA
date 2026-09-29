@@ -5,6 +5,9 @@
 - **Nivel deportivo:** iniciación, principiante, intermedio o avanzado; orienta complejidad y carga.
 - **Nivel de cuenta:** rango lúdico derivado de XP.
 - **Marca de referencia:** carga fechada para uno de los cuatro levantamientos principales.
+- **Récord de ejercicio:** mejor carga confirmada para 1, 2, 3 o 5 repeticiones de un ejercicio exacto.
+- **1RM estimado:** cálculo orientativo derivado de una marca de varias repeticiones; no es un levantamiento real.
+- **RPE:** percepción subjetiva del esfuerzo de una serie, entre 1 y 10.
 - **Ejercicio:** movimiento del catálogo con categoría, explicación y claves.
 - **Rutina:** identidad lógica perteneciente a un usuario.
 - **Versión:** fotografía inmutable publicable de una rutina.
@@ -25,6 +28,7 @@
 erDiagram
     AUTH_USER ||--|| PROFILE : posee
     AUTH_USER ||--o{ LIFT_RECORD : registra
+    AUTH_USER ||--o{ EXERCISE_RECORD : confirma
     AUTH_USER ||--o{ ROUTINE : crea
     ROUTINE ||--o{ ROUTINE_VERSION : versiona
     ROUTINE_VERSION ||--o{ ROUTINE_DAY : contiene
@@ -34,6 +38,9 @@ erDiagram
     ROUTINE_VERSION ||--o{ ROUTINE_ASSIGNMENT : asignada
     AUTH_USER ||--o{ WORKOUT_SESSION : ejecuta
     WORKOUT_SESSION ||--o{ PERFORMED_SET : contiene
+    WORKOUT_SESSION ||--o{ EXERCISE_RECORD : detecta
+    EXERCISE ||--o{ EXERCISE_RECORD : clasifica
+    PERFORMED_SET ||--o| EXERCISE_RECORD : origina
     ROUTINE_VERSION ||--o{ ROUTINE_LIKE : recibe
     ROUTINE_VERSION ||--o{ ROUTINE_QUESTION : recibe
     AUTH_USER ||--o{ NOTIFICATION : recibe
@@ -70,7 +77,13 @@ Contiene usuario, levantamiento, carga, fecha y origen. Los levantamientos váli
 
 La combinación usuario, levantamiento y fecha es única.
 
-El origen distingue configuración inicial, registro manual y detección desde una sesión. `finish_workout_session()` crea una fila automática únicamente cuando la carga de una serie satisfactoria en el movimiento canónico supera el máximo histórico. La finalización y el alta de marcas comparten transacción para evitar sesiones terminadas sin actualizar su progreso.
+El origen distingue configuración inicial, registro manual y detección desde una sesión. Esta tabla continúa siendo la referencia canónica para nivel y porcentajes: solo recibe un 1RM confirmado de sentadilla, arrancada, sentadilla frontal o dos tiempos.
+
+### `exercise_records`
+
+Almacena récords de 1, 2, 3 y 5 repeticiones por usuario y ejercicio exacto, con carga, 1RM estimado, fecha, sesión, serie de origen y estado `pending`, `confirmed` o `rejected`. La unicidad por sesión, ejercicio y repeticiones hace idempotente la detección. Su RLS permite lectura exclusiva del propietario y las mutaciones se realizan mediante RPC autenticadas.
+
+La estimación utiliza Epley para 2RM, 3RM y 5RM. Se conserva junto al peso levantado para que la interfaz distinga dato real y cálculo. Confirmar una variante nunca sincroniza la referencia del movimiento principal.
 
 ### `exercises`
 
@@ -92,6 +105,10 @@ Contiene propietario, estado y procedencia opcional. Una copia externa referenci
 
 Contiene título, descripción, nivel, enfoque, semanas, días por semana, visibilidad y fecha de publicación. Los niveles y focos están restringidos por checks. Una versión publicada es inmutable.
 
+### Semana y bloque de entrenamiento
+
+Los días ya no representan una plantilla única repetida: cada uno pertenece a una `week_number`. Todos los días de una semana comparten una fase (`accumulation`, `intensification` o `deload`) y un ajuste porcentual entre −40 y +30 puntos. Las prescripciones guardan el porcentaje final de esa semana, por lo que una versión publicada es reproducible y una copia comunitaria conserva la periodización completa.
+
 ### `routine_days` y `prescriptions`
 
 Cada día tiene índice y nombre propios. Las prescripciones ordenan ejercicios y definen series, repeticiones, intensidad absoluta o porcentual, valor, carga sugerida, descanso y notas.
@@ -102,9 +119,13 @@ Enlaza usuario y versión activa. Un índice parcial garantiza una sola asignaci
 
 ### `workout_sessions` y `performed_sets`
 
-La sesión almacena usuario, asignación/día, inicio, fin, estado y notas. Las series guardan ejercicio, orden, carga, repeticiones, RPE opcional, resultado y tiempo.
+La sesión almacena usuario, asignación/día, inicio, fin, estado, dolor, fatiga, sensación general y notas. Las series guardan ejercicio, orden, carga y repeticiones planificadas, carga y repeticiones realizadas, RPE opcional, resultado y tiempo.
 
 Los slugs `sentadilla`, `arrancada`, `sentadilla-frontal` y `dos-tiempos` se corresponden de forma explícita con las cuatro marcas. Tirones, pausas, potencia, hang, bloques y demás variantes no actualizan la referencia principal.
+
+El volumen planificado suma `carga planificada × repeticiones planificadas`; el realizado suma `carga realizada × repeticiones realizadas` únicamente en series satisfactorias. El cociente permite comparar sesiones sin reemplazar la lectura de RPE, dolor o fatiga.
+
+Las estadísticas avanzadas son proyecciones derivadas, no nuevas fuentes de verdad. El volumen semanal agrupa series satisfactorias por ejercicio; la intensidad relativa pondera cada porcentaje por repeticiones; la distribución cuenta series para conservar ejercicios de movilidad con 0 kg. El total olímpico combina registros canónicos de arrancada y dos tiempos, y las relaciones corporales usan el peso actual del perfil.
 
 ### `training_calendar_events`
 
