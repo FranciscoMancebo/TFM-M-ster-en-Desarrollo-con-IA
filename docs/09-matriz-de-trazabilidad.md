@@ -24,12 +24,15 @@
 | RF-064–069 | `achievement-console.tsx`, `gamification-celebration.tsx`, perfil público | migraciones 015, 202609250001 y 202609280002 | Detección de celebraciones probada; volumen, marcas, rachas y semanas cubiertos |
 | RF-070–073 | `coach-assistant.tsx` | Contexto cargado por repositorio | Implementada; evaluación de respuestas pendiente |
 | RF-074–081 | `performance-records.tsx`, `workout-feedback-dialog.tsx`, `performance.ts`, repositorio | migración 202609280003, `exercise_records`, campos de planificación y recuperación | 4 unitarias y pgTAP `0005` añadidas; E2E pendiente |
+| RF-114 | `workout-history-list.tsx`, `history.ts`, repositorio | `workout_sessions` y `performed_sets` | 3 unitarias de numeración y paso E2E autenticado añadidos |
+| RF-115 | `training-calendar.tsx`, `free-session.ts`, `app/page.tsx`, repositorio | relaciones opcionales de `workout_sessions` y `performed_sets`, enlace de calendario y RPC de rutinas | 4 unitarias de construcción/conversión y pgTAP `0010` añadidos |
+| RF-116 | `rest-timer.tsx`, `rest-timer.ts`, `app/page.tsx`, Perfil | `prescriptions.rest_seconds` y preferencias de migración `202611200001` | 5 unitarias de tiempo/restauración y pgTAP `0011` añadidos |
 | RF-082–086 | `advanced-statistics.tsx`, `statistics.ts`, repositorio | sesiones, series, ejercicios, marcas y peso del perfil | 7 unitarias de clasificación, agregación, fechas, exclusiones y vacíos añadidas |
 | RF-087–091 | `routine-hub.tsx`, `training-blocks.ts`, repositorio | migración 202609290001 y semanas materializadas en `routine_days` | 3 unitarias de fases, progresión, descarga y cargas absolutas superadas |
 | RF-092–094 | `AuthScreen`, `PasswordRecoveryScreen`, Perfil, repositorio | Supabase Auth y migración 202609290002 | E2E de recuperación visible, exportación descargada y borrado real de cuenta efímera |
 | RF-095–096 | `routine-hub.tsx`, `notification-center.tsx`, repositorio | RPC paginadas de migración 202609290002 | E2E de dos páginas de comunidad y pgTAP `0006` añadidos |
 | RF-097–098 | `AppFrame`, CSS global, `contrast.ts` | — | E2E de orden de teclado y 5 pares de contraste AA superados |
-| RF-099 | `React.lazy`, `scripts/check-bundle-size.mjs` | — | 46 chunks; máximo 328,5 kB bruto/96,6 kB gzip; presupuesto integrado en `check` |
+| RF-099 | `React.lazy`, `scripts/check-bundle-size.mjs` | — | 37 chunks; máximo 328,1 kB bruto/96,4 kB gzip; presupuesto integrado en `check` |
 | RF-100–103 | `profile-showcase-editor.tsx`, `public-athlete-profile.tsx`, `profile-showcase.ts` | migración 202609290004, tablas y RPC de recompensas | 4 unitarias de niveles/URLs, pgTAP `0007` y recorrido E2E autenticado añadidos |
 | RF-104–108 | `achievement-console.tsx`, `gamification-celebration.tsx`, `public-athlete-profile.tsx`, `rewards.ts` | migración 202609290005, catálogo, preferencias y RPC de cosméticos | 3 unitarias, pgTAP `0008` y equipamiento dentro del E2E autenticado añadidos |
 | RF-109–113 | `competition-eligibility.tsx`, `competition-standards.ts`, Perfil y onboarding | migración 202609290006, `birth_year` y `competition_sex` | 10 unitarias, pgTAP `0009` y modal dentro del E2E autenticado añadidos |
@@ -37,7 +40,7 @@
 | RNF-002 | UI semántica, primitives | — | Lint de accesibilidad superado; auditoría WCAG manual pendiente |
 | RNF-003 | Build de producción | — | Métricas de despliegue pendientes |
 | RNF-004–006 | RLS, constraints, claves únicas | todas las migraciones | Cobertura inicial; ampliación pendiente |
-| RNF-007 | tipos, reglas y repositorio | — | TypeScript, lint y 52 unitarias superadas; workflow automático añadido |
+| RNF-007 | tipos, reglas y repositorio | — | TypeScript, lint y 64 unitarias superadas; workflow automático añadido |
 | RNF-008 | migraciones y variables | — | Documentada |
 | RNF-009 | `i18n.tsx` y contenido bilingüe | `preferred_language` | Implementada; recorrido completo pendiente |
 | RNF-010 | generador explicable | marcas y notas | Implementada |
@@ -49,7 +52,7 @@
 | ID | Evidencia | Ubicación propuesta |
 | --- | --- | --- |
 | EV-01 | salida de tipos y build | workflow `quality.yml` y anexo técnico |
-| EV-02 | 52 unitarias de nivel, cargas, generador, bloques, celebraciones, calendario, rendimiento, estadísticas, contraste, baremos y recompensas de perfil | `web/tests/unit` e informe de pruebas |
+| EV-02 | 64 unitarias de nivel, cargas, generador, bloques, celebraciones, calendario, rendimiento, estadísticas, contraste, baremos, recompensas de perfil, historial y temporizador | `web/tests/unit` e informe de pruebas |
 | EV-03 | RLS con dos usuarios | informe de seguridad |
 | EV-04 | privacidad granular | `supabase/tests/0002_social_privacy_gamification.test.sql` |
 | EV-05 | importación y procedencia | prueba E2E |

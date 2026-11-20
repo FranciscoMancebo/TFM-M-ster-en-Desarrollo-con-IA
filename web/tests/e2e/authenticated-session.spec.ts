@@ -40,6 +40,14 @@ test('an authenticated athlete completes a session and confirms a detected recor
     const completedSetButton = page.getByRole('button', { name: /Marcar serie 1 como completada|Mark set 1 as completed/ });
     await completedSetButton.click();
     await expect(completedSetButton).toHaveAttribute('aria-pressed', 'true');
+    const restTimer = page.locator('.rest-timer');
+    await expect(restTimer).toBeVisible();
+    await expect(restTimer).toContainText(/Sentadilla.*serie 1|Back squat.*set 1/i);
+    await restTimer.getByRole('button', { name: /Pausar|Pause/ }).click();
+    await expect(restTimer).toContainText(/Descanso pausado|Rest paused/);
+    await restTimer.getByRole('button', { name: '+30 s', exact: true }).click();
+    await restTimer.getByRole('button', { name: /Reanudar|Resume/ }).click();
+    await expect(restTimer).toContainText(/Recuperando|Recovering/);
     await expect(page.locator('.session-footer')).toContainText(/0 pendientes|0 pending/);
     await page.getByRole('button', { name: /Finalizar sesión|Finish session/ })
       .evaluate((button) => (button as HTMLButtonElement).click());
@@ -49,6 +57,13 @@ test('an authenticated athlete completes a session and confirms a detected recor
     await expect(page.getByRole('heading', { name: /Has superado una de tus marcas|You beat one of your personal bests/ })).toBeVisible();
     await page.getByRole('button', { name: /Guardar|Save/, exact: true }).click();
     await expect(page.getByText(/Marca guardada|Record saved/)).toBeVisible();
+
+    await page.getByRole('button', { name: /Progreso|Progress/, exact: true }).first().click();
+    await expect(page.getByRole('heading', { name: /Historial de sesiones|Session history/ })).toBeVisible();
+    await page.getByRole('button', { name: /Ver ejercicios y series|View exercises and sets/ }).first().click();
+    const sessionDetail = page.getByRole('region', { name: /Detalle del entrenamiento|Workout details/ });
+    await expect(sessionDetail).toContainText('60 kg × 1');
+    await expect(sessionDetail).toContainText(/Completada|Completed/);
 
     await expect.poll(async () => {
       const { data } = await admin.from('exercise_records')

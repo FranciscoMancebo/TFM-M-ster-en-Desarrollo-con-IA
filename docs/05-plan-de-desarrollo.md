@@ -36,13 +36,16 @@ El proyecto sigue entregas verticales: cada incremento incorpora interfaz, regla
 | Español/inglés | Implementada | `i18n.tsx` y preferencia persistida |
 | Entrenador por reglas | Implementada | `coach-assistant.tsx` |
 | Calendario y adherencia | Implementada | migración `202609280002`, `training-calendar.tsx` y pruebas de fechas |
+| Sesiones libres ejecutables | Implementada | constructor desde calendario, sesión persistente, historial y pgTAP `0010` |
 | Rendimiento y recuperación | Implementada | migración `202609280003`, `performance.ts` y diálogo de cierre |
 | Récords por ejercicio y repeticiones | Implementada | `exercise_records`, `performance-records.tsx` y pgTAP `0005` |
 | Estadísticas avanzadas | Implementada | `statistics.ts`, `advanced-statistics.tsx` y pruebas unitarias |
+| Detalle de sesiones terminadas | Implementada | `workout-history-list.tsx`, numeración por ejercicio y prueba unitaria |
+| Temporizador de descanso | Implementada | descanso por prescripción, preferencias de perfil, persistencia cliente y pgTAP `0011` |
 | Suite automatizada inicial | Implementada | Vitest, Playwright y pgTAP |
 | Suite funcional/E2E completa | En curso | faltan sesiones, rutinas e importación |
 | Evaluación con usuarios | Pendiente | protocolo definido |
-| Exportación y borrado autoservicio | Pendiente | trabajo futuro priorizado |
+| Exportación y borrado autoservicio | Implementada | Perfil, RPC seguras y E2E autenticado |
 
 ## 4. Incrementos
 
@@ -131,9 +134,8 @@ El proyecto sigue entregas verticales: cada incremento incorpora interfaz, regla
 
 ### Should
 
-- exportación y borrado autoservicio;
-- paginación;
-- recuperación de contraseña;
+- corrección controlada de sesiones terminadas;
+- paginación del historial de sesiones;
 - reordenación accesible de ejercicios;
 - estados offline acotados.
 

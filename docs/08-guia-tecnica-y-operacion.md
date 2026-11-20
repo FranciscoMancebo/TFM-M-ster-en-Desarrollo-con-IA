@@ -93,6 +93,17 @@ Las migraciones se ejecutan en orden por nombre. No se modifica una migración y
 | `202609240014` | Lectura directa de perfiles solo para propietario |
 | `202609240015` | Notificaciones, XP, niveles y logros |
 | `202609250001` | Hitos de volumen y ampliación de la comunidad ficticia |
+| `202609280001` | Detección y confirmación de marcas desde entrenamientos |
+| `202609280002` | Calendario, planificación, adherencia y rachas |
+| `202609280003` | Récords por repeticiones, RPE, sensaciones y recuperación |
+| `202609280004` | Desambiguación de funciones de detección de marcas |
+| `202609290001` | Bloques, fases y progresión de entrenamiento |
+| `202609290002` | Exportación, borrado, privacidad y paginación |
+| `202609290003` | Endurecimiento de la exportación de cuenta |
+| `202609290004` | Recompensas de nivel y espacios del perfil |
+| `202609290005` | Cosméticos y recompensas por categorías |
+| `202609290006` | Perfil y baremos de elegibilidad competitiva |
+| `202611200001` | Preferencias persistentes del temporizador de descanso |
 
 ## 6. Datos ficticios
 
@@ -114,6 +125,8 @@ npm.cmd run test:e2e
 
 `check` ejecuta tipos, lint, pruebas unitarias y build. El lint también puede ejecutarse de forma independiente con `npm.cmd run lint`.
 
+Los tres casos de acceso anónimo no necesitan servicios externos. Para los recorridos autenticados, copiar `.env.e2e.example` como `.env.e2e` y configurar un proyecto Supabase exclusivo para pruebas. Playwright carga el archivo al arrancar y crea y elimina sus propios usuarios. No utilizar el proyecto de producción: la clave `E2E_SUPABASE_SERVICE_ROLE_KEY` tiene privilegios administrativos y nunca debe llamarse `VITE_*`.
+
 Para base de datos:
 
 ```powershell
@@ -123,7 +136,7 @@ npm.cmd run test:db
 
 La suite RLS se encuentra en `supabase/tests`, se ejecuta dentro de transacciones con `ROLLBACK` y requiere Docker Desktop para la imagen `pg_prove`. Debe utilizarse contra un entorno de prueba controlado antes de la entrega.
 
-GitHub Actions ejecuta tipos, unitarias, build y pruebas de navegador mediante `.github/workflows/quality.yml`. La suite remota de base de datos permanece separada porque requiere credenciales y un entorno Supabase controlado.
+GitHub Actions ejecuta tipos, unitarias, build y pruebas de navegador mediante `.github/workflows/quality.yml`. Los secretos de repositorio `E2E_SUPABASE_URL`, `E2E_SUPABASE_PUBLISHABLE_KEY` y `E2E_SUPABASE_SERVICE_ROLE_KEY` habilitan los recorridos autenticados; sin ellos se omiten de forma explícita. La suite remota de base de datos permanece separada porque requiere credenciales y un entorno Supabase controlado.
 
 ## 8. Despliegue
 

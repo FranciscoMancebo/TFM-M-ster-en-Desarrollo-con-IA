@@ -140,6 +140,9 @@ La identidad efectiva procede de `auth.uid()`. Un identificador enviado desde el
 - **RF-111:** comparar el total con las mínimas nacionales RFEH 2026 derivadas de los puntos élite exigidos para Sub-15, Sub-17, Júnior y Absoluto.
 - **RF-112:** mostrar todas las categorías de edad simultáneamente aplicables, su mínima, diferencia y estado de cumplimiento.
 - **RF-113:** abrir desde el estado un modal que explique baremos, fuentes y requisitos adicionales, sin presentar la estimación como clasificación oficial.
+- **RF-114:** consultar el detalle de una sesión terminada con ejercicios, número de serie, carga y repeticiones planificadas y realizadas, resultado, RPE y sensaciones finales.
+- **RF-115:** preparar y ejecutar una sesión libre planificada para hoy seleccionando ejercicios del catálogo, series, repeticiones y carga, vincular su finalización con calendario, historial, estadísticas y detección de marcas, y permitir guardarla después como rutina privada de un día.
+- **RF-116:** iniciar automáticamente al completar una serie un temporizador con el descanso de la prescripción o el valor de respaldo del perfil, permitir pausarlo, reanudarlo, reiniciarlo, ampliarlo o descartarlo, restaurarlo al recargar y emitir avisos configurables de sonido y vibración al finalizar.
 
 ## 3. Historias prioritarias y aceptación
 

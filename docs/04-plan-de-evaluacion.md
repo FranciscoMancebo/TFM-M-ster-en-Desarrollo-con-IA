@@ -87,9 +87,9 @@ Cambiar a inglés, recorrer Perfil, Rutinas y Logros y volver a iniciar sesión.
 
 ### T9 — Calendario y adherencia
 
-Asignar tres días distintos de la rutina a la semana actual, añadir un descanso y una competición, reprogramar una sesión y completar desde el calendario el entrenamiento de hoy.
+Asignar tres días distintos de la rutina a la semana actual, añadir un descanso y una competición, reprogramar una sesión y completar desde el calendario el entrenamiento de hoy. Planificar además una sesión libre, añadir dos ejercicios con cargas distintas, ejecutarla y finalizarla con sensaciones.
 
-**Éxito:** las vistas semanal y mensual coinciden, se conservan fecha de origen y estados, la sesión completada actualiza el calendario y los porcentajes, la racha y los logros se recalculan sin duplicados.
+**Éxito:** las vistas semanal y mensual coinciden, se conservan fecha de origen y estados, las sesiones de rutina y libre actualizan el calendario y los porcentajes, la sesión libre aparece en historial y estadísticas, detecta marcas con las mismas reglas, se puede guardar como rutina privada y la racha y los logros se recalculan sin duplicados.
 
 ### T10 — Rendimiento, récords y recuperación
 
@@ -102,6 +102,12 @@ Completar una sesión modificando la carga planificada, registrar RPE por serie 
 Completar sesiones en dos semanas con ejercicios de fuerza, técnica y movilidad, modificar cargas y registrar nuevas marcas de arrancada y dos tiempos.
 
 **Éxito:** el volumen aparece en la semana y ejercicio correctos; la movilidad figura aunque use 0 kg; la intensidad declara su cobertura y usa la marca válida en cada fecha; el total olímpico coincide con la suma histórica; y las relaciones cambian al editar el peso corporal.
+
+### T12 — Descanso entre series
+
+Configurar 90 segundos de respaldo, desactivar y reactivar los avisos, iniciar una sesión con un ejercicio de descanso prescrito distinto, completar una serie, pausar, añadir 30 segundos, reanudar y recargar la página.
+
+**Éxito:** prevalece el descanso prescrito, el contador conserva el instante final sin deriva, los controles actualizan el estado, la recarga restaura únicamente la sesión activa y al llegar a cero se muestra la finalización y se respetan sonido y vibración. En una sesión libre se emplean los 90 segundos del perfil.
 
 ## 5. Evaluación técnica
 
@@ -127,10 +133,11 @@ Casos unitarios automatizados:
 - volumen semanal, intensidad fechada, distribución, total olímpico y cocientes corporales;
 - límites semanales/mensuales, desplazamiento de periodos y rejilla mensual estable de 42 días.
 - fases de acumulación, intensificación y descarga, progresión porcentual, límites y preservación de cargas absolutas.
+- selección de descanso prescrito o de respaldo, cuenta absoluta, pausa, reanudación, ampliación, reinicio y restauración segura.
 
 La suite se encuentra en `web/tests/unit` y se ejecuta con `npm.cmd run test`. Incluye la detección no repetitiva de logros y subidas de nivel, la clasificación de hitos visuales de nivel 5/10, la agrupación y selección de recompensas, los límites de edad/peso y mínimas RFEH, la fórmula Epley, las condiciones del aviso de rendimiento y casos positivos, vacíos y de exclusión para las cinco estadísticas avanzadas.
 
-La prueba pgTAP `0003_workout_personal_bests.test.sql` conserva la compatibilidad de la detección canónica. `0004_training_calendar_adherence.test.sql` cubre RLS del calendario, tipos de día, enlace con sesiones, finalización automática, adherencia, racha y reprogramación. `0005_performance_records_recovery.test.sql` cubre confirmación, rangos de repeticiones, estimación, separación de variantes, sensaciones, planificación frente a ejecución y RLS. `0006_account_privacy_pagination.test.sql` valida el aislamiento de la exportación, la exclusión de credenciales internas, el borrado confirmado y páginas estables de comunidad y notificaciones. `0007_profile_level_rewards.test.sql` comprueba niveles mínimos, dominios permitidos, privacidad pública y exportación de recompensas. `0008_cosmetic_rewards.test.sql` valida bloqueo, equipamiento, sustitución, perfil público y exportación de cosméticos de nivel y categoría. `0009_competition_profile.test.sql` comprueba persistencia, restricciones y exportación de los datos federativos.
+La prueba pgTAP `0003_workout_personal_bests.test.sql` conserva la compatibilidad de la detección canónica. `0004_training_calendar_adherence.test.sql` cubre RLS del calendario, tipos de día, enlace con sesiones, finalización automática, adherencia, racha y reprogramación. `0005_performance_records_recovery.test.sql` cubre confirmación, rangos de repeticiones, estimación, separación de variantes, sensaciones, planificación frente a ejecución y RLS. `0006_account_privacy_pagination.test.sql` valida el aislamiento de la exportación, la exclusión de credenciales internas, el borrado confirmado y páginas estables de comunidad y notificaciones. `0007_profile_level_rewards.test.sql` comprueba niveles mínimos, dominios permitidos, privacidad pública y exportación de recompensas. `0008_cosmetic_rewards.test.sql` valida bloqueo, equipamiento, sustitución, perfil público y exportación de cosméticos de nivel y categoría. `0009_competition_profile.test.sql` comprueba persistencia, restricciones y exportación de los datos federativos. `0010_free_sessions.test.sql` verifica sesiones sin rutina ni prescripción, enlace propio, aislamiento y finalización automática del evento. `0011_rest_timer_preferences.test.sql` valida valores iniciales, actualización, límites y privacidad de las preferencias de descanso.
 
 ### Navegador
 
@@ -153,7 +160,7 @@ La auditoría automática de contraste calcula luminancia relativa y ratio WCAG 
 - XP idempotente.
 - RPC inaccesibles para `anon`.
 
-Las pruebas pgTAP residen en `supabase/tests`: `0001` cubre el aislamiento del núcleo de rutinas y sesiones, `0002` privacidad social y gamificación, `0003` marcas canónicas, `0004` calendario/adherencia, `0005` rendimiento, recuperación y récords por ejercicio, `0006` privacidad de cuenta y paginación, `0007` recompensas multimedia/sociales, `0008` cosméticos de nivel y categoría, y `0009` datos federativos del perfil. Todas usan transacciones con `ROLLBACK`.
+Las pruebas pgTAP residen en `supabase/tests`: `0001` cubre el aislamiento del núcleo de rutinas y sesiones, `0002` privacidad social y gamificación, `0003` marcas canónicas, `0004` calendario/adherencia, `0005` rendimiento, recuperación y récords por ejercicio, `0006` privacidad de cuenta y paginación, `0007` recompensas multimedia/sociales, `0008` cosméticos de nivel y categoría, `0009` datos federativos del perfil, `0010` sesiones libres y `0011` preferencias del temporizador. Todas usan transacciones con `ROLLBACK`.
 
 ### Accesibilidad
 

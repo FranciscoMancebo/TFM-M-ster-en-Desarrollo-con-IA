@@ -24,6 +24,8 @@ Capacidades disponibles:
 - estadísticas de volumen semanal por ejercicio, intensidad relativa, distribución del trabajo, total olímpico y fuerza respecto al peso corporal;
 - comparación orientativa del total olímpico con las mínimas RFEH 2026 por edad, categoría de competición y peso, con desglose normativo;
 - calendario semanal y mensual para planificar, reprogramar y clasificar entrenamientos, descansos, competiciones y sesiones libres;
+- ejecución de sesiones libres configurables desde el calendario, con ejercicios del catálogo, series, repeticiones, cargas, RPE, detección de marcas y conversión opcional en rutina privada;
+- temporizador de descanso automático por serie, con pausa, reinicio, ampliación, persistencia y avisos configurables;
 - adherencia semanal y mensual, racha de entrenamientos, días completados y semanas perfectas;
 - historial y gráficos fechados para sentadilla, arrancada, sentadilla frontal y dos tiempos;
 - enciclopedia de fuerza, movilidad, arrancada y dos tiempos con variantes y hueco para vídeo;
@@ -105,7 +107,7 @@ npm.cmd run check
 
 `test` ejecuta las pruebas unitarias de dominio; `test:e2e` abre Chromium mediante Playwright; y `check` agrupa tipos, lint, unitarias, build de producción y presupuesto por chunk. La primera ejecución E2E necesita instalar el navegador con `npx.cmd playwright install chromium`. `npm.cmd run bundle:check` muestra peso bruto y gzip de los chunks mayores y falla por encima de 500 kB brutos o 180 kB gzip.
 
-El E2E autenticado crea un atleta efímero, completa una sesión, confirma la nueva marca y elimina la cuenta al terminar. Para habilitarlo, copia los nombres de `web/.env.e2e.example` al entorno del proceso y utiliza un proyecto Supabase aislado. La clave `service_role` solo se consume desde el proceso Node de Playwright y nunca se expone como variable `VITE_*`.
+El E2E autenticado crea un atleta efímero, completa una sesión, confirma la nueva marca y elimina la cuenta al terminar. Para habilitarlo, copia `web/.env.e2e.example` como `web/.env.e2e`, rellénalo con un proyecto Supabase aislado y ejecuta de nuevo `npm.cmd run test:e2e`. Playwright carga ese archivo automáticamente. La clave `service_role` solo se consume desde el proceso Node de Playwright y nunca se expone como variable `VITE_*`.
 
 Las pruebas transaccionales de seguridad y comportamiento de Supabase están en `supabase/tests/`. Con Docker Desktop activo y el proyecto enlazado se ejecutan desde `web/` con:
 
@@ -113,7 +115,7 @@ Las pruebas transaccionales de seguridad y comportamiento de Supabase están en 
 npm.cmd run test:db
 ```
 
-El workflow `.github/workflows/quality.yml` reproduce automáticamente tipos, unitarias, build y E2E en cada cambio de `main` y en cada pull request.
+El workflow `.github/workflows/quality.yml` reproduce automáticamente tipos, unitarias, build y E2E en cada cambio de `main` y en cada pull request. Para ejecutar también los recorridos autenticados deben existir en GitHub Actions los secretos `E2E_SUPABASE_URL`, `E2E_SUPABASE_PUBLISHABLE_KEY` y `E2E_SUPABASE_SERVICE_ROLE_KEY`; si faltan, esos casos se muestran como omitidos y las pruebas públicas continúan.
 
 La seguridad de datos se apoya en Row Level Security y en funciones RPC con comprobación de `auth.uid()`. Nunca debe utilizarse una clave de servicio en el navegador.
 

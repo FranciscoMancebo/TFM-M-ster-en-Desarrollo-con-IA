@@ -33,7 +33,7 @@ import type {
   NewTrainingCalendarEvent,
   TrainingCalendarEvent,
 } from './types';
-import { latestLiftRecords } from './lifts';
+import { latestLiftRecords, todayForInput } from './lifts';
 import { classifyTrainingCategory } from './statistics';
 import { createTrainingWeeks, defaultDeloadReduction } from './training-blocks';
 
@@ -177,7 +177,7 @@ export const workoutRepository = {
   async loadProfile(userId: string): Promise<UserProfile> {
     const { data, error } = await client()
       .from('profiles')
-      .select('user_id,display_name,bio,level,goals,training_days_per_week,height_cm,weight_kg,birth_year,competition_sex,avatar_base64,onboarding_completed,weightlifting_experience,preferred_language,profile_visibility,show_training_data,show_progress,show_public_routines,show_media,show_social_links,confirm_detected_records')
+      .select('user_id,display_name,bio,level,goals,training_days_per_week,height_cm,weight_kg,birth_year,competition_sex,avatar_base64,onboarding_completed,weightlifting_experience,preferred_language,profile_visibility,show_training_data,show_progress,show_public_routines,show_media,show_social_links,confirm_detected_records,rest_timer_enabled,rest_timer_default_seconds,rest_timer_sound,rest_timer_vibration')
       .eq('user_id', userId)
       .single();
     const profile = requireData(data, error);
@@ -203,6 +203,10 @@ export const workoutRepository = {
       showMedia: profile.show_media,
       showSocialLinks: profile.show_social_links,
       confirmDetectedRecords: profile.confirm_detected_records,
+      restTimerEnabled: profile.rest_timer_enabled,
+      restTimerDefaultSeconds: profile.rest_timer_default_seconds,
+      restTimerSound: profile.rest_timer_sound,
+      restTimerVibration: profile.rest_timer_vibration,
     };
   },
 
@@ -230,6 +234,10 @@ export const workoutRepository = {
         show_media: profile.showMedia,
         show_social_links: profile.showSocialLinks,
         confirm_detected_records: profile.confirmDetectedRecords,
+        rest_timer_enabled: profile.restTimerEnabled,
+        rest_timer_default_seconds: profile.restTimerDefaultSeconds,
+        rest_timer_sound: profile.restTimerSound,
+        rest_timer_vibration: profile.restTimerVibration,
       })
       .eq('user_id', profile.userId);
     if (error) throw new Error(error.message);
@@ -622,7 +630,7 @@ export const workoutRepository = {
     const [{ data: prescriptions, error: prescriptionsError }, liftRecords] = await Promise.all([
       client()
         .from('prescriptions')
-        .select('id,exercise_id,sort_order,sets,repetitions,intensity_type,intensity_value,suggested_load_kg,notes,exercise:exercises!prescriptions_exercise_id_fkey(id,name),reference_exercise:exercises!prescriptions_reference_exercise_id_fkey(slug,name)')
+        .select('id,exercise_id,sort_order,sets,repetitions,intensity_type,intensity_value,suggested_load_kg,rest_seconds,notes,exercise:exercises!prescriptions_exercise_id_fkey(id,name),reference_exercise:exercises!prescriptions_reference_exercise_id_fkey(slug,name)')
         .eq('routine_day_id', routineDay.id)
         .order('sort_order'),
       this.loadLiftRecords(userId),
@@ -665,6 +673,7 @@ export const workoutRepository = {
         prescriptionId: item.id,
         name: relatedExercise?.name ?? 'Ejercicio',
         prescription: `${item.sets} × ${item.repetitions} · ${intensity}`,
+        restSeconds: item.rest_seconds,
         context: item.intensity_type === 'percentage'
           ? referenceRecord
             ? `${Number(item.intensity_value)} % de ${referenceExercise?.name ?? 'tu marca'} (${referenceRecord.weightKg} kg) · carga calculada automáticamente`
@@ -675,6 +684,7 @@ export const workoutRepository = {
     });
 
     return {
+      kind: 'routine',
       assignmentId: assignment.id,
       routineVersionId: routineVersion.id,
       routineDayId: routineDay.id,
@@ -691,11 +701,11 @@ export const workoutRepository = {
     };
   },
 
-  async loadActive(plan: RoutinePlan): Promise<ActiveWorkout | null> {
+  async loadActive(userId: string, plan: RoutinePlan | null): Promise<ActiveWorkout | null> {
     const { data: session, error: sessionError } = await client()
       .from('workout_sessions')
-      .select('id,started_at')
-      .eq('assignment_id', plan.assignmentId)
+      .select('id,started_at,assignment_id,routine_day_id,notes')
+      .eq('user_id', userId)
       .eq('status', 'active')
       .order('started_at', { ascending: false })
       .limit(1)
@@ -705,42 +715,94 @@ export const workoutRepository = {
 
     const { data: rows, error: rowsError } = await client()
       .from('performed_sets')
-      .select('id,prescription_id,exercise_id,order_index,planned_load_kg,planned_repetitions,load_kg,repetitions,rpe,result')
+      .select('id,prescription_id,exercise_id,order_index,planned_load_kg,planned_repetitions,load_kg,repetitions,rpe,result,exercise:exercises(id,name)')
       .eq('session_id', session.id)
       .order('order_index');
     if (rowsError) throw new Error(rowsError.message);
 
+    const mapSet = (row: NonNullable<typeof rows>[number]): TrainingSet => ({
+      id: row.id,
+      prescriptionId: row.prescription_id ?? '',
+      exerciseId: row.exercise_id,
+      orderIndex: row.order_index,
+      plannedWeight: Number(row.planned_load_kg),
+      plannedReps: row.planned_repetitions,
+      weight: Number(row.load_kg),
+      reps: row.repetitions,
+      rpe: row.rpe === null ? null : Number(row.rpe),
+      status: statusFromResult(row.result),
+    });
+
+    let activePlan = plan;
+    if (session.routine_day_id && activePlan?.routineDayId !== session.routine_day_id) {
+      activePlan = await this.loadPlan(userId, session.routine_day_id);
+    }
+
+    if (!session.routine_day_id) {
+      const byExercise = new Map<string, Exercise>();
+      for (const row of rows ?? []) {
+        const relatedExercise = Array.isArray(row.exercise) ? row.exercise[0] : row.exercise;
+        const current: Exercise = byExercise.get(row.exercise_id) ?? {
+          id: row.exercise_id,
+          prescriptionId: '',
+          name: relatedExercise?.name ?? 'Ejercicio',
+          prescription: '',
+          context: 'Sesión libre · carga editable',
+          restSeconds: null,
+          sets: [] as TrainingSet[],
+        };
+        current.sets.push(mapSet(row));
+        byExercise.set(row.exercise_id, current);
+      }
+      const freeExercises = [...byExercise.values()].map((exercise) => ({
+        ...exercise,
+        prescription: `${exercise.sets.length} series configuradas`,
+      }));
+      activePlan = {
+        kind: 'free_session',
+        assignmentId: '',
+        routineVersionId: '',
+        routineDayId: '',
+        title: 'Sesión libre',
+        description: 'Entrenamiento personalizado creado desde el calendario.',
+        dayName: session.notes ?? 'Sesión libre',
+        weekNumber: 1,
+        dayIndex: 1,
+        weeks: 1,
+        daysPerWeek: 1,
+        phase: 'accumulation',
+        percentageAdjustment: 0,
+        exercises: freeExercises,
+      };
+    }
+
+    if (!activePlan) throw new Error('No se pudo reconstruir la sesión activa.');
     const byPrescription = new Map<string, TrainingSet[]>();
     for (const row of rows ?? []) {
       if (!row.prescription_id) continue;
       const current = byPrescription.get(row.prescription_id) ?? [];
-      current.push({
-        id: row.id,
-        prescriptionId: row.prescription_id,
-        exerciseId: row.exercise_id,
-        orderIndex: row.order_index,
-        plannedWeight: Number(row.planned_load_kg),
-        plannedReps: row.planned_repetitions,
-        weight: Number(row.load_kg),
-        reps: row.repetitions,
-        rpe: row.rpe === null ? null : Number(row.rpe),
-        status: statusFromResult(row.result),
-      });
+      current.push(mapSet(row));
       byPrescription.set(row.prescription_id, current);
     }
+    const activeExercises = activePlan.kind === 'free_session'
+      ? activePlan.exercises
+      : activePlan.exercises.map((exercise) => ({
+        ...exercise,
+        sets: byPrescription.get(exercise.prescriptionId) ?? exercise.sets,
+      }));
+    activePlan = { ...activePlan, exercises: activeExercises };
 
     return {
       sessionId: session.id,
       startedAt: session.started_at,
       elapsed: Math.max(0, Math.floor((Date.now() - new Date(session.started_at).getTime()) / 1000)),
-      exercises: plan.exercises.map((exercise) => ({
-        ...exercise,
-        sets: byPrescription.get(exercise.prescriptionId) ?? exercise.sets,
-      })),
+      exercises: activeExercises,
+      plan: activePlan,
     };
   },
 
   async startSession(userId: string, plan: RoutinePlan): Promise<ActiveWorkout> {
+    if (plan.kind !== 'routine') throw new Error('Las sesiones libres deben iniciarse desde el calendario.');
     const startedAt = new Date().toISOString();
     const { data: session, error: sessionError } = await client()
       .from('workout_sessions')
@@ -790,6 +852,68 @@ export const workoutRepository = {
       startedAt: createdSession.started_at,
       elapsed: 0,
       exercises: plan.exercises,
+      plan,
+    };
+  },
+
+  async startFreeSession(userId: string, eventId: string, plan: RoutinePlan): Promise<ActiveWorkout> {
+    if (plan.kind !== 'free_session' || plan.exercises.length === 0) throw new Error('La sesión libre no contiene ejercicios.');
+    const startedAt = new Date().toISOString();
+    const { data: session, error: sessionError } = await client()
+      .from('workout_sessions')
+      .insert({
+        user_id: userId,
+        assignment_id: null,
+        routine_day_id: null,
+        started_at: startedAt,
+        status: 'active',
+        notes: plan.dayName,
+      })
+      .select('id,started_at')
+      .single();
+    const createdSession = requireData(session, sessionError);
+
+    const rows = plan.exercises.flatMap((exercise) => exercise.sets.map((set) => ({
+      id: set.id,
+      session_id: createdSession.id,
+      exercise_id: set.exerciseId,
+      prescription_id: null,
+      order_index: set.orderIndex,
+      planned_load_kg: set.plannedWeight,
+      planned_repetitions: set.plannedReps,
+      load_kg: set.weight,
+      repetitions: set.reps,
+      rpe: set.rpe,
+      result: 'skipped',
+    })));
+    const { error: setsError } = await client().from('performed_sets').insert(rows);
+    if (setsError) {
+      await client().from('workout_sessions').delete().eq('id', createdSession.id);
+      throw new Error(setsError.message);
+    }
+
+    const { data: linkedEvent, error: calendarError } = await client()
+      .from('training_calendar_events')
+      .update({ workout_session_id: createdSession.id })
+      .eq('id', eventId)
+      .eq('user_id', userId)
+      .eq('event_type', 'free_session')
+      .eq('status', 'planned')
+      .eq('scheduled_on', todayForInput())
+      .is('workout_session_id', null)
+      .select('id')
+      .maybeSingle();
+    if (calendarError || !linkedEvent) {
+      await client().from('workout_sessions').delete().eq('id', createdSession.id);
+      throw new Error(calendarError?.message ?? 'No se encontró la sesión libre planificada para hoy.');
+    }
+
+    return {
+      sessionId: createdSession.id,
+      startedAt: createdSession.started_at,
+      elapsed: 0,
+      exercises: plan.exercises,
+      plan,
     };
   },
 
@@ -875,7 +999,7 @@ export const workoutRepository = {
   async loadHistory(userId: string): Promise<CompletedWorkout[]> {
     const { data, error } = await client()
       .from('workout_sessions')
-      .select('id,started_at,finished_at,pain_level,fatigue_level,overall_feeling,routine_day:routine_days(name,routine_version:routine_versions(title)),performed_sets(planned_load_kg,planned_repetitions,load_kg,repetitions,rpe,result,exercise:exercises(id,name,slug,category))')
+      .select('id,started_at,finished_at,notes,pain_level,fatigue_level,overall_feeling,routine_day:routine_days(name,routine_version:routine_versions(title)),performed_sets(planned_load_kg,planned_repetitions,load_kg,repetitions,rpe,result,exercise:exercises(id,name,slug,category))')
       .eq('user_id', userId)
       .eq('status', 'completed')
       .order('finished_at', { ascending: false })
@@ -911,8 +1035,8 @@ export const workoutRepository = {
       });
       return {
         id: session.id,
-        routineName: relatedVersion?.title ?? 'Entrenamiento',
-        dayName: relatedDay?.name ?? 'Sesión libre',
+        routineName: relatedVersion?.title ?? 'Sesión libre',
+        dayName: relatedDay?.name ?? session.notes ?? 'Sesión libre',
         completedAt: finishedAt,
         durationSeconds: Math.max(0, Math.round((new Date(finishedAt).getTime() - new Date(session.started_at).getTime()) / 1000)),
         completedSets: completed.length,

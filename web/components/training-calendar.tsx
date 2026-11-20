@@ -28,7 +28,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { requestGamificationCheck } from '@/components/gamification-celebration';
-import { useI18n } from '@/lib/i18n';
+import { translateKnownText, useI18n } from '@/lib/i18n';
 import {
   calendarDate,
   calendarDateKey,
@@ -45,6 +45,8 @@ import type {
   CalendarEventStatus,
   CalendarEventType,
   CalendarRoutineDay,
+  ExerciseLibraryItem,
+  FreeSessionExerciseDraft,
   TrainingCalendarEvent,
 } from '@/lib/workout/types';
 
@@ -66,14 +68,18 @@ type EventForm = {
 export function TrainingCalendar({
   userId,
   routineVersionId,
+  exerciseLibrary,
   hasActiveSession,
   onStartWorkout,
+  onStartFreeSession,
   onError,
 }: {
   userId: string;
   routineVersionId: string | null;
+  exerciseLibrary: ExerciseLibraryItem[];
   hasActiveSession: boolean;
   onStartWorkout: (routineDayId: string) => Promise<void>;
+  onStartFreeSession: (eventId: string, title: string, exercises: FreeSessionExerciseDraft[]) => Promise<void>;
   onError: (message: string) => void;
 }) {
   const { language, locale, tr } = useI18n();
@@ -88,6 +94,10 @@ export function TrainingCalendar({
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<TrainingCalendarEvent | null>(null);
+  const [freeSessionEvent, setFreeSessionEvent] = useState<TrainingCalendarEvent | null>(null);
+  const [freeSessionExercises, setFreeSessionExercises] = useState<FreeSessionExerciseDraft[]>([]);
+  const [selectedExerciseId, setSelectedExerciseId] = useState('');
+  const [startingFreeSession, setStartingFreeSession] = useState(false);
   const [form, setForm] = useState<EventForm>({
     scheduledOn: today,
     eventType: 'workout',
@@ -225,12 +235,55 @@ export function TrainingCalendar({
   }
 
   async function startWorkout(event: TrainingCalendarEvent) {
+    if (event.eventType === 'free_session') {
+      setFreeSessionEvent(event);
+      setFreeSessionExercises([]);
+      setSelectedExerciseId(exerciseLibrary[0]?.id ?? '');
+      return;
+    }
     if (!event.routineDayId) return;
     onError('');
     try {
       await onStartWorkout(event.routineDayId);
     } catch (error) {
       onError(error instanceof Error ? error.message : tr('No se pudo iniciar el entrenamiento.', 'The workout could not be started.'));
+    }
+  }
+
+  function addFreeSessionExercise() {
+    const exercise = exerciseLibrary.find((item) => item.id === selectedExerciseId);
+    if (!exercise || freeSessionExercises.some((item) => item.exerciseId === exercise.id)) return;
+    const next = [...freeSessionExercises, {
+      exerciseId: exercise.id,
+      exerciseName: exercise.name,
+      sets: 3,
+      repetitions: 3,
+      loadKg: 0,
+    }];
+    setFreeSessionExercises(next);
+    setSelectedExerciseId(exerciseLibrary.find((item) => !next.some((draft) => draft.exerciseId === item.id))?.id ?? '');
+  }
+
+  function updateFreeSessionExercise(exerciseId: string, patch: Partial<FreeSessionExerciseDraft>) {
+    setFreeSessionExercises((current) => current.map((item) => item.exerciseId === exerciseId ? { ...item, ...patch } : item));
+  }
+
+  function removeFreeSessionExercise(exerciseId: string) {
+    setFreeSessionExercises((current) => current.filter((item) => item.exerciseId !== exerciseId));
+    if (!selectedExerciseId) setSelectedExerciseId(exerciseId);
+  }
+
+  async function beginFreeSession() {
+    if (!freeSessionEvent || freeSessionExercises.length === 0) return;
+    setStartingFreeSession(true);
+    onError('');
+    try {
+      await onStartFreeSession(freeSessionEvent.id, freeSessionEvent.title, freeSessionExercises);
+      setFreeSessionEvent(null);
+    } catch (error) {
+      onError(error instanceof Error ? error.message : tr('No se pudo iniciar la sesión libre.', 'The free session could not be started.'));
+    } finally {
+      setStartingFreeSession(false);
     }
   }
 
@@ -352,6 +405,38 @@ export function TrainingCalendar({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={Boolean(freeSessionEvent)} onOpenChange={(open) => { if (!open && !startingFreeSession) setFreeSessionEvent(null); }}>
+        <DialogContent className="free-session-dialog">
+          <DialogHeader>
+            <DialogTitle>{freeSessionEvent?.title ?? tr('Sesión libre', 'Free session')}</DialogTitle>
+            <DialogDescription>{tr('Elige los ejercicios y configura el trabajo antes de empezar. Podrás ajustar cada serie durante el entrenamiento.', 'Choose exercises and configure the work before starting. You can adjust every set during the workout.')}</DialogDescription>
+          </DialogHeader>
+          <div className="free-session-builder">
+            <div className="free-session-add">
+              <label><span>{tr('Ejercicio', 'Exercise')}</span><select value={selectedExerciseId} onChange={(event) => setSelectedExerciseId(event.target.value)}>
+                <option value="">{tr('Selecciona un ejercicio', 'Select an exercise')}</option>
+                {exerciseLibrary.filter((exercise) => !freeSessionExercises.some((draft) => draft.exerciseId === exercise.id)).map((exercise) => <option value={exercise.id} key={exercise.id}>{translateKnownText(language, exercise.name)}</option>)}
+              </select></label>
+              <Button type="button" variant="outline" disabled={!selectedExerciseId || freeSessionExercises.length >= 12} onClick={addFreeSessionExercise}><Plus aria-hidden="true" />{tr('Añadir', 'Add')}</Button>
+            </div>
+            {freeSessionExercises.length === 0 ? <p className="free-session-empty">{tr('Añade al menos un ejercicio para comenzar.', 'Add at least one exercise to begin.')}</p> : <div className="free-session-exercise-list">
+              {freeSessionExercises.map((exercise) => <article key={exercise.exerciseId}>
+                <header><strong>{translateKnownText(language, exercise.exerciseName)}</strong><button type="button" aria-label={`${tr('Eliminar', 'Remove')} ${translateKnownText(language, exercise.exerciseName)}`} onClick={() => removeFreeSessionExercise(exercise.exerciseId)}><Trash2 aria-hidden="true" /></button></header>
+                <div>
+                  <label><span>{tr('Series', 'Sets')}</span><input type="number" min={1} max={10} value={exercise.sets} onChange={(event) => updateFreeSessionExercise(exercise.exerciseId, { sets: Number(event.target.value) })} /></label>
+                  <label><span>{tr('Repeticiones', 'Repetitions')}</span><input type="number" min={1} max={100} value={exercise.repetitions} onChange={(event) => updateFreeSessionExercise(exercise.exerciseId, { repetitions: Number(event.target.value) })} /></label>
+                  <label><span>{tr('Carga', 'Load')} (kg)</span><input type="number" min={0} max={600} step={0.5} value={exercise.loadKg} onChange={(event) => updateFreeSessionExercise(exercise.exerciseId, { loadKg: Number(event.target.value) })} /></label>
+                </div>
+              </article>)}
+            </div>}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={startingFreeSession} onClick={() => setFreeSessionEvent(null)}>{tr('Cancelar', 'Cancel')}</Button>
+            <Button type="button" disabled={startingFreeSession || freeSessionExercises.length === 0} onClick={() => void beginFreeSession()}>{startingFreeSession ? tr('Preparando…', 'Preparing…') : tr('Empezar entrenamiento', 'Start workout')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -383,8 +468,8 @@ function CalendarEventDetail({
 }) {
   const meta = eventPresentation(event, tr);
   const Icon = meta.icon;
-  const canStart = event.eventType === 'workout' && event.scheduledOn === today && event.status === 'planned' && !hasActiveSession;
-  const canCompleteManually = event.eventType !== 'workout' && event.status === 'planned';
+  const canStart = (event.eventType === 'workout' || event.eventType === 'free_session') && event.scheduledOn === today && event.status === 'planned' && !hasActiveSession;
+  const canCompleteManually = event.eventType !== 'workout' && event.eventType !== 'free_session' && event.status === 'planned';
   return (
     <article className={`calendar-detail-card is-${event.eventType}`}>
       <div className="calendar-detail-icon"><Icon aria-hidden="true" /></div>
@@ -397,7 +482,7 @@ function CalendarEventDetail({
       </div>
       <div className="calendar-detail-state"><span className={`is-${meta.state}`}>{meta.status}</span></div>
       <div className="calendar-detail-actions">
-        {canStart && <Button onClick={onStart}><Dumbbell aria-hidden="true" />{tr('Empezar', 'Start')}</Button>}
+        {canStart && <Button onClick={onStart}><Dumbbell aria-hidden="true" />{event.eventType === 'free_session' ? tr('Preparar', 'Prepare') : tr('Empezar', 'Start')}</Button>}
         {canCompleteManually && <Button onClick={onComplete}><Check aria-hidden="true" />{tr('Completar', 'Complete')}</Button>}
         {event.status === 'planned' && <Button variant="outline" onClick={onSkip}><SkipForward aria-hidden="true" />{tr('Omitir', 'Skip')}</Button>}
         {event.status === 'skipped' && <Button variant="outline" onClick={onReopen}><RotateCcw aria-hidden="true" />{tr('Reabrir', 'Reopen')}</Button>}

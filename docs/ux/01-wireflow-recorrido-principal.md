@@ -87,7 +87,7 @@ Activar reemplaza la asignación activa. Importar una rutina pública crea prime
 
 ## 6. Sesión
 
-La sesión muestra día, progreso, ejercicios y series. Carga y repeticiones son editables. Cada serie puede marcarse como completada o fallida. Pausar detiene el temporizador, no borra datos.
+La sesión muestra día, progreso, ejercicios y series. Carga y repeticiones son editables. Cada serie puede marcarse como completada o fallida. El cronómetro general se puede pausar sin borrar datos. Al completar una serie, el descanso prescrito —o el respaldo del perfil— abre un contador independiente con pausa, reanudación, reinicio, ampliación de 30 segundos y descarte; su instante final se conserva al recargar.
 
 Finalizar con pendientes exige confirmación. El resumen muestra duración, volumen, completadas, fallidas y omitidas.
 

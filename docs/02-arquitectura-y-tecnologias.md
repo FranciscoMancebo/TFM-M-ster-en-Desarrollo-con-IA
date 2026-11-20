@@ -154,6 +154,10 @@ Las versiones exactas están bloqueadas en `web/package-lock.json`.
 
 Cada `routine_version` materializa todos sus días por `week_number`. `routine_days.phase` identifica acumulación, intensificación o descarga, y `percentage_adjustment` documenta los puntos aplicados respecto a la semana base. El generador es determinista: clona la estructura base, progresa únicamente prescripciones en porcentaje y conserva sin cambios las cargas absolutas. Las rutinas anteriores se expanden al aplicar la migración `202609290001`; el lector mantiene además un fallback a la semana 1 para versiones incompletas.
 
+### Temporizador de descanso
+
+Cada ejercicio del plan conserva `prescriptions.rest_seconds`; si no existe un valor positivo, las sesiones libres emplean el respaldo configurado en `profiles`. `rest-timer.ts` representa el final como una marca temporal absoluta para evitar deriva al cambiar de pestaña. El estado se guarda por usuario en `localStorage`, incluye el identificador de la sesión activa y se descarta si no coincide al restaurarlo. Sonido y vibración se ejecutan solo en el cliente y respetan las preferencias persistidas del perfil.
+
 ### Gestión de cuenta y privacidad
 
 La recuperación utiliza `resetPasswordForEmail`, el evento `PASSWORD_RECOVERY` y `updateUser`; la contraseña nunca pasa por tablas propias. `export_my_data()` construye una instantánea JSON exclusivamente para `auth.uid()`. `delete_my_account()` exige que el correo confirmado coincida con el de `auth.users` y elimina esa identidad, apoyándose en claves foráneas con cascada para los datos personales.

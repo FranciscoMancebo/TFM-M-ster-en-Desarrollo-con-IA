@@ -1,4 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
+import { existsSync } from 'node:fs';
+
+if (existsSync('.env.e2e')) process.loadEnvFile('.env.e2e');
 
 const authenticatedSupabaseUrl = process.env.E2E_SUPABASE_URL;
 const authenticatedSupabaseKey = process.env.E2E_SUPABASE_PUBLISHABLE_KEY;
@@ -22,7 +25,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev -- --port 4173',
+    command: 'node scripts/prepare-e2e-server.mjs && npm run dev -- --port 4173',
     url: 'http://localhost:4173',
     env: {
       VITE_SUPABASE_URL: authenticatedSupabaseUrl ?? 'http://127.0.0.1:54321',

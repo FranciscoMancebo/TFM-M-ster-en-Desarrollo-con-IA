@@ -1,6 +1,6 @@
 'use client';
 
-import { lazy, Suspense, type ChangeEvent, type SubmitEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import NextImage from 'next/image';
 import {
@@ -38,6 +38,7 @@ import { NotificationCenter } from '@/components/notification-center';
 import { CompetitionEligibility } from '@/components/competition-eligibility';
 import { GamificationCelebration, requestGamificationCheck } from '@/components/gamification-celebration';
 import { WorkoutFeedbackDialog } from '@/components/workout-feedback-dialog';
+import { RestTimer } from '@/components/rest-timer';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -49,11 +50,26 @@ import { RFEH_STANDARD_YEAR } from '@/lib/workout/competition-standards';
 import { workoutRepository } from '@/lib/workout/repository';
 import { detectPerformanceDrop } from '@/lib/workout/performance';
 import {
+  addRestTimerSeconds,
+  completeRestTimer,
+  createRestTimer,
+  parseRestTimer,
+  pauseRestTimer,
+  resolveRestDuration,
+  restartRestTimer,
+  restSecondsRemaining,
+  restTimerStorageKey,
+  resumeRestTimer,
+  serializeRestTimer,
+  type RestTimerState,
+} from '@/lib/workout/rest-timer';
+import {
   freshExercises,
   type CompletedWorkout,
   type CompetitionSex,
   type Exercise,
   type ExerciseLibraryItem,
+  type FreeSessionExerciseDraft,
   type LiftRecord,
   type LiftType,
   type Language,
@@ -77,6 +93,9 @@ const AdvancedStatistics = lazy(() => import('@/components/advanced-statistics')
 const LiftProgress = lazy(() => import('@/components/lift-progress').then((module) => ({ default: module.LiftProgress })));
 const PerformanceRecords = lazy(() => import('@/components/performance-records').then((module) => ({ default: module.PerformanceRecords })));
 const ProfileShowcaseEditor = lazy(() => import('@/components/profile-showcase-editor').then((module) => ({ default: module.ProfileShowcaseEditor })));
+const WorkoutHistoryList = lazy(() => import('@/components/workout-history-list').then((module) => ({ default: module.WorkoutHistoryList })));
+const AuthScreen = lazy(() => import('@/components/auth-screens').then((module) => ({ default: module.AuthScreen })));
+const PasswordRecoveryScreen = lazy(() => import('@/components/auth-screens').then((module) => ({ default: module.PasswordRecoveryScreen })));
 
 type Screen = 'today' | 'session' | 'summary';
 type AppView = 'today' | 'calendar' | 'routines' | 'coach' | 'encyclopedia' | 'history' | 'achievements' | 'profile';
@@ -98,6 +117,28 @@ const profileGoals = [
   { id: 'mobility', label: 'Movilidad', labelEn: 'Mobility', description: 'Mejorar rangos y control en las posiciones.', descriptionEn: 'Improve range and control in key positions.' },
   { id: 'competition', label: 'Competición', labelEn: 'Competition', description: 'Preparar intentos, estrategia y puesta a punto.', descriptionEn: 'Prepare attempts, strategy and peaking.' },
 ] as const;
+
+async function announceRestComplete(audioContext: AudioContext | null, soundEnabled: boolean, vibrationEnabled: boolean) {
+  if (vibrationEnabled && typeof navigator.vibrate === 'function') navigator.vibrate([180, 100, 180]);
+  if (!soundEnabled || typeof AudioContext === 'undefined') return;
+
+  const ownsContext = !audioContext;
+  const context = audioContext ?? new AudioContext();
+  await context.resume();
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.type = 'sine';
+  oscillator.frequency.setValueAtTime(880, context.currentTime);
+  oscillator.frequency.setValueAtTime(1040, context.currentTime + 0.16);
+  gain.gain.setValueAtTime(0.0001, context.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.18, context.currentTime + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.38);
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start();
+  oscillator.stop(context.currentTime + 0.4);
+  if (ownsContext) oscillator.addEventListener('ended', () => void context.close());
+}
 
 const experienceOptions: Array<{ id: WeightliftingExperience; label: string; labelEn: string; description: string; descriptionEn: string }> = [
   { id: 'never', label: 'Nunca', labelEn: 'Never', description: 'Será mi primer contacto con la halterofilia.', descriptionEn: 'This will be my first contact with weightlifting.' },
@@ -441,19 +482,6 @@ function AppFrame({
   );
 }
 
-function formatDate(value: string, locale: string) {
-  return new Intl.DateTimeFormat(locale, {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(value));
-}
-
-function formatDuration(seconds: number) {
-  const minutes = Math.max(1, Math.round(seconds / 60));
-  return `${minutes} min`;
-}
-
 function PerformanceDropAlert({
   alert,
   tr,
@@ -498,6 +526,12 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [workoutPersonalBests, setWorkoutPersonalBests] = useState<WorkoutPersonalBest[]>([]);
+  const [savingFreeRoutine, setSavingFreeRoutine] = useState(false);
+  const [freeRoutineSaved, setFreeRoutineSaved] = useState(false);
+  const [restTimer, setRestTimer] = useState<RestTimerState | null>(null);
+  const [restTimerNow, setRestTimerNow] = useState(() => Date.now());
+  const announcedRestTimerId = useRef<string | null>(null);
+  const restAlertAudioContext = useRef<AudioContext | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -524,13 +558,12 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
         setLiftRecords(loadedLiftRecords);
         setExerciseLibrary(loadedExercises);
 
-        if (loadedPlan) {
-          const active = await workoutRepository.loadActive(loadedPlan);
-          if (cancelled) return;
-          setExercises(active?.exercises ?? loadedPlan.exercises);
-          setElapsed(active?.elapsed ?? 0);
-          setActiveSessionId(active?.sessionId ?? null);
-        }
+        const active = await workoutRepository.loadActive(user.id, loadedPlan);
+        if (cancelled) return;
+        if (active) setPlan(active.plan);
+        setExercises(active?.exercises ?? loadedPlan?.exercises ?? []);
+        setElapsed(active?.elapsed ?? 0);
+        setActiveSessionId(active?.sessionId ?? null);
       } catch (error) {
         if (!cancelled) setDataError(error instanceof Error ? error.message : 'No se pudieron cargar tus datos.');
       } finally {
@@ -550,6 +583,53 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
     );
     return () => window.clearInterval(interval);
   }, [isPaused, screen]);
+
+  useEffect(() => {
+    const restore = window.setTimeout(() => {
+      if (!activeSessionId) {
+        setRestTimer(null);
+        return;
+      }
+      const storageKey = restTimerStorageKey(user.id);
+      const savedTimer = window.localStorage.getItem(storageKey);
+      const restored = parseRestTimer(savedTimer, activeSessionId);
+      if (savedTimer && !restored) window.localStorage.removeItem(storageKey);
+      setRestTimer(restored);
+      setRestTimerNow(Date.now());
+      announcedRestTimerId.current = restored?.endsAt === null && restored.remainingSeconds === 0 ? restored.id : null;
+    }, 0);
+    return () => window.clearTimeout(restore);
+  }, [activeSessionId, user.id]);
+
+  useEffect(() => () => {
+    if (restAlertAudioContext.current) void restAlertAudioContext.current.close();
+  }, []);
+
+  useEffect(() => {
+    if (!restTimer || !activeSessionId || restTimer.sessionId !== activeSessionId) return;
+    window.localStorage.setItem(restTimerStorageKey(user.id), serializeRestTimer(restTimer));
+  }, [activeSessionId, restTimer, user.id]);
+
+  useEffect(() => {
+    if (!restTimer || restTimer.endsAt === null) return;
+    const tick = () => setRestTimerNow(Date.now());
+    tick();
+    const interval = window.setInterval(tick, 250);
+    return () => window.clearInterval(interval);
+  }, [restTimer]);
+
+  const restTimerRemaining = restTimer ? restSecondsRemaining(restTimer, restTimerNow) : 0;
+
+  useEffect(() => {
+    if (!restTimer || restTimer.endsAt === null || restTimerRemaining > 0) return;
+    const complete = window.setTimeout(() => {
+      setRestTimer((current) => current?.id === restTimer.id ? completeRestTimer(current) : current);
+      if (announcedRestTimerId.current === restTimer.id) return;
+      announcedRestTimerId.current = restTimer.id;
+      void announceRestComplete(restAlertAudioContext.current, profile?.restTimerSound ?? true, profile?.restTimerVibration ?? true).catch(() => undefined);
+    }, 0);
+    return () => window.clearTimeout(complete);
+  }, [profile?.restTimerSound, profile?.restTimerVibration, restTimer, restTimerRemaining]);
 
   useEffect(() => {
     const syncLanguage = window.setTimeout(() => {
@@ -615,9 +695,8 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
     setId: string,
     patch: Partial<TrainingSet>,
   ) {
-    const currentSet = exercises
-      .find((exercise) => exercise.id === exerciseId)
-      ?.sets.find((set) => set.id === setId);
+    const currentExercise = exercises.find((exercise) => exercise.id === exerciseId);
+    const currentSet = currentExercise?.sets.find((set) => set.id === setId);
     if (!currentSet) return;
     const updatedSet: TrainingSet = { ...currentSet, ...patch };
 
@@ -633,6 +712,35 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
         setDataError(error instanceof Error ? error.message : 'No se pudo guardar la serie.');
       });
     }
+    if (
+      activeSessionId
+      && profile?.restTimerEnabled
+      && patch.status === 'completed'
+      && currentSet.status !== 'completed'
+      && currentExercise
+    ) {
+      const duration = resolveRestDuration(currentExercise.restSeconds, profile.restTimerDefaultSeconds);
+      if (duration > 0) {
+        const setNumber = currentExercise.sets.findIndex((set) => set.id === setId) + 1;
+        const nextTimer = createRestTimer(activeSessionId, currentExercise.name, setNumber, duration);
+        if (profile.restTimerSound && typeof AudioContext !== 'undefined') {
+          const context = restAlertAudioContext.current?.state === 'closed'
+            ? new AudioContext()
+            : restAlertAudioContext.current ?? new AudioContext();
+          restAlertAudioContext.current = context;
+          void context.resume().catch(() => undefined);
+        }
+        setRestTimer(nextTimer);
+        setRestTimerNow(nextTimer.endsAt ? nextTimer.endsAt - duration * 1000 : 0);
+        announcedRestTimerId.current = null;
+      }
+    }
+  }
+
+  function clearRestTimer() {
+    setRestTimer(null);
+    announcedRestTimerId.current = null;
+    window.localStorage.removeItem(restTimerStorageKey(user.id));
   }
 
   async function startSession() {
@@ -645,6 +753,7 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
     setDataError('');
     try {
       const active = await workoutRepository.startSession(user.id, { ...plan, exercises });
+      setPlan(active.plan);
       setActiveSessionId(active.sessionId);
       setExercises(active.exercises);
       setElapsed(0);
@@ -670,7 +779,7 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
         ...scheduledPlan,
         exercises: scheduledExercises,
       });
-      setPlan(scheduledPlan);
+      setPlan(active.plan);
       setExercises(active.exercises);
       setActiveSessionId(active.sessionId);
       setElapsed(0);
@@ -678,6 +787,31 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
       setScreen('session');
     } catch (error) {
       const message = error instanceof Error ? error.message : tr('No se pudo iniciar la sesión programada.', 'The scheduled session could not be started.');
+      setDataError(message);
+      throw error;
+    }
+  }
+
+  async function startFreeSession(eventId: string, title: string, drafts: FreeSessionExerciseDraft[]) {
+    if (activeSessionId) {
+      setView('today');
+      setScreen('session');
+      return;
+    }
+
+    setDataError('');
+    try {
+      const { createFreeSessionPlan } = await import('@/lib/workout/free-session');
+      const freePlan = createFreeSessionPlan(title, drafts);
+      const active = await workoutRepository.startFreeSession(user.id, eventId, freePlan);
+      setPlan(active.plan);
+      setExercises(active.exercises);
+      setActiveSessionId(active.sessionId);
+      setElapsed(0);
+      setView('today');
+      setScreen('session');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : tr('No se pudo iniciar la sesión libre.', 'The free session could not be started.');
       setDataError(message);
       throw error;
     }
@@ -722,6 +856,7 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
           setProfile(await workoutRepository.saveProfile({ ...profile, level: updatedLevel }));
         }
       }
+      clearRestTimer();
       setActiveSessionId(null);
       setShowFinishPrompt(false);
       setFeedbackOpen(false);
@@ -761,11 +896,13 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
   }
 
   async function resetSession(nextView: AppView = 'today') {
+    clearRestTimer();
     setElapsed(0);
     setIsPaused(false);
     setShowFinishPrompt(false);
     setFeedbackOpen(false);
     setWorkoutPersonalBests([]);
+    setFreeRoutineSaved(false);
     setScreen('today');
     setView(nextView);
     try {
@@ -778,10 +915,29 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
     }
   }
 
+  async function saveFreeSessionAsRoutine() {
+    if (!profile || plan?.kind !== 'free_session') return;
+    setSavingFreeRoutine(true);
+    setDataError('');
+    try {
+      const { saveFreeSessionAsRoutine } = await import('@/lib/workout/free-session');
+      setRoutines(await saveFreeSessionAsRoutine(plan, profile.level, profile.goals, user.id));
+      setFreeRoutineSaved(true);
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : tr('No se pudo guardar la sesión como rutina.', 'The session could not be saved as a routine.'));
+    } finally {
+      setSavingFreeRoutine(false);
+    }
+  }
+
   async function saveProfile() {
     if (!profile) return;
     if (!profile.trainingDaysPerWeek || !profile.heightCm || !profile.weightKg || !profile.weightliftingExperience || profile.goals.length === 0) {
       setDataError('Completa los días de entrenamiento, altura, peso, experiencia y al menos un objetivo.');
+      return;
+    }
+    if (!Number.isInteger(profile.restTimerDefaultSeconds) || profile.restTimerDefaultSeconds < 15 || profile.restTimerDefaultSeconds > 900) {
+      setDataError(tr('El descanso predeterminado debe estar entre 15 y 900 segundos.', 'Default rest must be between 15 and 900 seconds.'));
       return;
     }
     setProfileSaving(true);
@@ -928,8 +1084,8 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
 
         <div className="session-layout">
           <aside className="session-overview">
-            <p className="eyebrow">{translateKnownText(language, plan?.title ?? '')} · {tr('Semana', 'Week')} {plan?.weekNumber} · {plan ? trainingPhaseLabels[plan.phase][language === 'es' ? 0 : 1] : ''}</p>
-            <h1>{tr('Día', 'Day')} {plan?.dayIndex} · {translateKnownText(language, plan?.dayName ?? '')}</h1>
+            <p className="eyebrow">{plan?.kind === 'free_session' ? tr('Sesión libre', 'Free session') : <>{translateKnownText(language, plan?.title ?? '')} · {tr('Semana', 'Week')} {plan?.weekNumber} · {plan ? trainingPhaseLabels[plan.phase][language === 'es' ? 0 : 1] : ''}</>}</p>
+            <h1>{plan?.kind === 'free_session' ? translateKnownText(language, plan.dayName) : <>{tr('Día', 'Day')} {plan?.dayIndex} · {translateKnownText(language, plan?.dayName ?? '')}</>}</h1>
             <p className="muted-copy">{tr('Tus cambios se sincronizan con tu cuenta.', 'Your changes are synced with your account.')}</p>
             <Progress value={totals.all ? ((totals.completed + totals.failed) / totals.all) * 100 : 0} aria-label={`${totals.completed + totals.failed} de ${totals.all} series registradas`} />
             <p className="progress-copy"><strong>{totals.completed + totals.failed}/{totals.all}</strong> {tr('series registradas', 'sets recorded')}</p>
@@ -938,6 +1094,38 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
               <span><i className="key-dot failed" />{tr('Fallida', 'Failed')}</span>
               <span><i className="key-dot pending" />{tr('Pendiente', 'Pending')}</span>
             </div>
+            {restTimer && <RestTimer
+              timer={restTimer}
+              remainingSeconds={restTimerRemaining}
+              onPause={() => {
+                const now = Date.now();
+                setRestTimer((current) => current ? pauseRestTimer(current, now) : null);
+                setRestTimerNow(now);
+              }}
+              onResume={() => {
+                const now = Date.now();
+                setRestTimer((current) => current ? resumeRestTimer(current, now) : null);
+                setRestTimerNow(now);
+              }}
+              onRestart={() => {
+                const now = Date.now();
+                setRestTimer((current) => current ? restartRestTimer(current, now) : null);
+                setRestTimerNow(now);
+                announcedRestTimerId.current = null;
+              }}
+              onAddTime={() => {
+                const now = Date.now();
+                setRestTimer((current) => {
+                  if (!current) return null;
+                  const wasComplete = restSecondsRemaining(current, now) < 1;
+                  const extended = addRestTimerSeconds(current, 30, now);
+                  return wasComplete ? resumeRestTimer(extended, now) : extended;
+                });
+                setRestTimerNow(now);
+                announcedRestTimerId.current = null;
+              }}
+              onSkip={clearRestTimer}
+            />}
           </aside>
 
           <section className="exercise-stack" aria-label={tr('Ejercicios de la sesión', 'Session exercises')}>
@@ -1009,9 +1197,11 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
         {dataError && <div className="data-alert routine-global-alert" role="alert">{dataError}</div>}
         <TrainingCalendar
           userId={user.id}
-          routineVersionId={plan?.routineVersionId ?? null}
+          routineVersionId={plan?.kind === 'routine' ? plan.routineVersionId : null}
+          exerciseLibrary={exerciseLibrary}
           hasActiveSession={Boolean(activeSessionId)}
           onStartWorkout={startScheduledWorkout}
+          onStartFreeSession={startFreeSession}
           onError={setDataError}
         />
       </AppFrame>
@@ -1121,6 +1311,17 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
                 <span>{tr('Sobre ti', 'About you')}</span>
                 <textarea maxLength={500} rows={5} value={profile.bio} onChange={(event) => setProfile({ ...profile, bio: event.target.value })} placeholder={tr('Cuéntanos qué estás trabajando ahora.', 'Tell us what you are working on now.')} />
               </label>
+              <section className="profile-wide rest-timer-settings" aria-labelledby="rest-timer-settings-title">
+                <header>
+                  <div><Timer aria-hidden="true" /><span><strong id="rest-timer-settings-title">{tr('Temporizador de descanso', 'Rest timer')}</strong><small>{tr('Se inicia al completar una serie y respeta el descanso indicado por la rutina.', 'Starts after a completed set and follows the rest prescribed by the routine.')}</small></span></div>
+                  <label htmlFor="rest-timer-enabled" className={profile.restTimerEnabled ? 'is-enabled' : ''}><Checkbox id="rest-timer-enabled" checked={profile.restTimerEnabled} onCheckedChange={(checked) => setProfile({ ...profile, restTimerEnabled: checked })} /><span>{tr('Activado', 'Enabled')}</span></label>
+                </header>
+                <div className="rest-timer-preferences">
+                  <label><span>{tr('Descanso para sesiones libres', 'Rest for free sessions')}</span><div className="unit-input"><input disabled={!profile.restTimerEnabled} required type="number" min={15} max={900} step={15} value={profile.restTimerDefaultSeconds} onChange={(event) => setProfile({ ...profile, restTimerDefaultSeconds: Number(event.target.value) })} /><small>{tr('seg', 'sec')}</small></div></label>
+                  <label htmlFor="rest-timer-sound" className={profile.restTimerSound ? 'is-enabled' : ''}><Checkbox id="rest-timer-sound" disabled={!profile.restTimerEnabled} checked={profile.restTimerSound} onCheckedChange={(checked) => setProfile({ ...profile, restTimerSound: checked })} /><span><strong>{tr('Aviso sonoro', 'Sound alert')}</strong><small>{tr('Emite un tono al llegar a cero.', 'Plays a tone when the timer reaches zero.')}</small></span></label>
+                  <label htmlFor="rest-timer-vibration" className={profile.restTimerVibration ? 'is-enabled' : ''}><Checkbox id="rest-timer-vibration" disabled={!profile.restTimerEnabled} checked={profile.restTimerVibration} onCheckedChange={(checked) => setProfile({ ...profile, restTimerVibration: checked })} /><span><strong>{tr('Vibración', 'Vibration')}</strong><small>{tr('Disponible en dispositivos compatibles.', 'Available on supported devices.')}</small></span></label>
+                </div>
+              </section>
               <section className="profile-wide record-settings" aria-labelledby="record-settings-title">
                 <label htmlFor="confirm-detected-records" className={profile.confirmDetectedRecords ? 'is-enabled' : ''}>
                   <Checkbox id="confirm-detected-records" checked={profile.confirmDetectedRecords} onCheckedChange={(checked) => setProfile({ ...profile, confirmDetectedRecords: checked })} />
@@ -1203,29 +1404,7 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
           <PerformanceRecords userId={user.id} onError={setDataError} />
           <section className="history-list" aria-labelledby="recent-title">
             <div className="section-heading"><div><p className="eyebrow">{tr('Registro', 'Log')}</p><h2 id="recent-title">{tr('Sesiones recientes', 'Recent sessions')}</h2></div></div>
-            {history.length === 0 ? (
-              <div className="history-empty">
-                <Dumbbell aria-hidden="true" />
-                <h3>{tr('Todavía no hay sesiones terminadas', 'No completed sessions yet')}</h3>
-                <p>{tr('Cuando finalices un entrenamiento aparecerá aquí con su volumen y resultados.', 'Completed training sessions will appear here with their volume and results.')}</p>
-                <Button variant="outline" onClick={() => navigate('today')}>{tr('Ver entrenamiento de hoy', "View today's training")}</Button>
-              </div>
-            ) : (
-              history.map((item) => (
-                <article className="history-item" key={item.id}>
-                  <div className="history-date"><strong>{formatDate(item.completedAt, locale)}</strong><span>{formatDuration(item.durationSeconds)}</span></div>
-                  <div><h3>{translateKnownText(language, item.routineName)}</h3><p>{translateKnownText(language, item.dayName)}</p></div>
-                  <dl>
-                    <div><dt>{tr('Completadas', 'Completed')}</dt><dd>{item.completedSets}</dd></div>
-                    <div><dt>{tr('Planificado', 'Planned')}</dt><dd>{item.plannedVolumeKg.toLocaleString(locale)} kg</dd></div>
-                    <div><dt>{tr('Realizado', 'Performed')}</dt><dd>{item.volumeKg.toLocaleString(locale)} kg</dd></div>
-                    <div><dt>{tr('Rendimiento', 'Performance')}</dt><dd>{item.performancePercentage.toLocaleString(locale)}%</dd></div>
-                    <div><dt>RPE</dt><dd>{item.averageRpe?.toLocaleString(locale) ?? '—'}</dd></div>
-                    <div><dt>{tr('Fatiga', 'Fatigue')}</dt><dd>{item.fatigueLevel === null ? '—' : `${item.fatigueLevel}/10`}</dd></div>
-                  </dl>
-                </article>
-              ))
-            )}
+            <WorkoutHistoryList history={history} onGoToTraining={() => navigate('today')} />
           </section>
         </div>
       </AppFrame>
@@ -1240,7 +1419,7 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
           {dataError && <div className="data-alert" role="alert">{dataError}</div>}
           <section className="summary-hero">
             <div className="summary-check"><Check aria-hidden="true" /></div>
-            <p className="eyebrow">{tr('Sesión guardada', 'Session saved')}</p><h1>{tr('Entrenamiento registrado', 'Training recorded')}</h1><p>{translateKnownText(language, plan?.title ?? '')} · {tr('Semana', 'Week')} {plan?.weekNumber}, {tr('día', 'day')} {plan?.dayIndex}</p>
+            <p className="eyebrow">{tr('Sesión guardada', 'Session saved')}</p><h1>{tr('Entrenamiento registrado', 'Training recorded')}</h1><p>{plan?.kind === 'free_session' ? `${tr('Sesión libre', 'Free session')} · ${translateKnownText(language, plan.dayName)}` : <>{translateKnownText(language, plan?.title ?? '')} · {tr('Semana', 'Week')} {plan?.weekNumber}, {tr('día', 'day')} {plan?.dayIndex}</>}</p>
           </section>
           {workoutPersonalBests.length > 0 && (
             <section className="personal-best-celebration" aria-live="polite">
@@ -1287,6 +1466,7 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
           </div>
           <p className="formula-note">{tr('El volumen suma carga × repeticiones de cada serie completada. Los intentos fallidos no cuentan.', 'Volume is load × repetitions for every completed set. Failed attempts do not count.')}</p>
           <div className="summary-actions">
+            {plan?.kind === 'free_session' && <Button variant="outline" size="lg" disabled={savingFreeRoutine || freeRoutineSaved} onClick={() => void saveFreeSessionAsRoutine()}>{freeRoutineSaved ? tr('Guardada en Mis rutinas', 'Saved to My routines') : savingFreeRoutine ? tr('Guardando rutina…', 'Saving routine…') : tr('Guardar como rutina', 'Save as routine')}</Button>}
             <Button variant="outline" size="lg" onClick={() => void resetSession('history')}>{tr('Ver historial', 'View history')}</Button>
             <Button size="lg" onClick={() => void resetSession('today')}>{tr('Volver a Hoy', 'Back to Today')}</Button>
           </div>
@@ -1306,23 +1486,23 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
         {dataError && <div className="data-alert" role="alert">{dataError}</div>}
         {performanceAlert.active && <PerformanceDropAlert alert={performanceAlert} tr={tr} locale={locale} />}
         <section className="today-heading">
-          <div><p className="eyebrow">{tr('Tu entrenamiento', 'Your training')}</p><h1>{tr('Hoy toca construir la base.', 'Today we build the foundation.')}</h1></div>
-          {plan && <span className="week-badge">{tr('SEM', 'WK')} {plan.weekNumber.toString().padStart(2, '0')} · {tr('DÍA', 'DAY')} {plan.dayIndex.toString().padStart(2, '0')}</span>}
+          <div><p className="eyebrow">{tr('Tu entrenamiento', 'Your training')}</p><h1>{plan?.kind === 'free_session' ? tr('Tu sesión libre está preparada.', 'Your free session is ready.') : tr('Hoy toca construir la base.', 'Today we build the foundation.')}</h1></div>
+          {plan?.kind === 'routine' && <span className="week-badge">{tr('SEM', 'WK')} {plan.weekNumber.toString().padStart(2, '0')} · {tr('DÍA', 'DAY')} {plan.dayIndex.toString().padStart(2, '0')}</span>}
         </section>
         {plan ? <section className="workout-card">
           <div className="workout-main">
-            <div className="workout-labels"><span>{translateKnownText(language, plan.title)}</span><span>{translateKnownText(language, plan.dayName)}</span><span>{trainingPhaseLabels[plan.phase][language === 'es' ? 0 : 1]} {plan.percentageAdjustment !== 0 ? `(${plan.percentageAdjustment > 0 ? '+' : ''}${plan.percentageAdjustment} p.p.)` : ''}</span></div>
+            <div className="workout-labels"><span>{translateKnownText(language, plan.title)}</span><span>{translateKnownText(language, plan.dayName)}</span><span>{plan.kind === 'free_session' ? tr('Personalizada', 'Custom') : <>{trainingPhaseLabels[plan.phase][language === 'es' ? 0 : 1]} {plan.percentageAdjustment !== 0 ? `(${plan.percentageAdjustment > 0 ? '+' : ''}${plan.percentageAdjustment} p.p.)` : ''}</>}</span></div>
             <h2>{translateKnownText(language, plan.description)}</h2>
-            <p>{totals.all} {tr('series', 'sets')} · {plan.daysPerWeek} {tr('días por semana', 'days per week')}</p>
+            <p>{totals.all} {tr('series', 'sets')}{plan.kind === 'routine' ? <> · {plan.daysPerWeek} {tr('días por semana', 'days per week')}</> : ''}</p>
             <Button size="lg" className="start-button" onClick={() => void startSession()}>
               {activeSessionId ? tr('Reanudar sesión', 'Resume session') : tr('Iniciar sesión', 'Start session')}
               <Play aria-hidden="true" fill="currentColor" />
             </Button>
           </div>
-          <div className="workout-index" aria-hidden="true">{plan.dayIndex.toString().padStart(2, '0')}</div>
+          <div className="workout-index" aria-hidden="true">{plan.kind === 'free_session' ? 'SL' : plan.dayIndex.toString().padStart(2, '0')}</div>
         </section> : <div className="history-empty"><Dumbbell aria-hidden="true" /><h3>{tr('No tienes una rutina activa', 'You have no active routine')}</h3><p>{tr('Cuando se asigne una rutina aparecerá aquí.', 'An assigned routine will appear here.')}</p></div>}
         <section className="day-plan" aria-labelledby="plan-title">
-          <div className="section-heading"><div><p className="eyebrow">{tr('Día', 'Day')} {plan?.dayIndex ?? 1} · {translateKnownText(language, plan?.dayName ?? 'Sin asignar')}</p><h2 id="plan-title">{tr('Plan de hoy', "Today's plan")}</h2></div><span>{totals.all} {tr('series', 'sets')}</span></div>
+          <div className="section-heading"><div><p className="eyebrow">{plan?.kind === 'free_session' ? tr('Sesión libre', 'Free session') : <>{tr('Día', 'Day')} {plan?.dayIndex ?? 1}</>} · {translateKnownText(language, plan?.dayName ?? 'Sin asignar')}</p><h2 id="plan-title">{tr('Plan de hoy', "Today's plan")}</h2></div><span>{totals.all} {tr('series', 'sets')}</span></div>
           <div className="plan-list">
             {exercises.map((exercise, index) => (
               <article key={exercise.id}>
@@ -1336,126 +1516,13 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
         <aside className="week-note">
           <div className="note-icon"><RotateCcw aria-hidden="true" /></div>
           <div><p className="eyebrow">{tr('En el ciclo', 'In this cycle')}</p><h2>{history.length + 1}{language === 'es' ? '.ª sesión registrada' : ' sessions recorded'}</h2><p>{tr('Las cargas se guardan junto a cada intento.', 'Loads are saved with every attempt.')}</p></div>
-          <div className="week-progress" aria-label={`Semana ${plan?.weekNumber ?? 1} de ${plan?.weeks ?? 1}`}>
+          {plan?.kind !== 'free_session' && <div className="week-progress" aria-label={`Semana ${plan?.weekNumber ?? 1} de ${plan?.weeks ?? 1}`}>
             {Array.from({ length: plan?.weeks ?? 1 }, (_, index) => index + 1).map((week) => <span className={week === plan?.weekNumber ? 'is-active' : ''} key={week}>{week.toString().padStart(2, '0')}</span>)}
-          </div>
+          </div>}
         </aside>
       </div>
     </AppFrame>
   );
-}
-
-function AuthScreen() {
-  const { tr } = useI18n();
-  const [mode, setMode] = useState<'login' | 'signup' | 'recovery'>('login');
-  const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [pending, setPending] = useState(false);
-  const [message, setMessage] = useState('');
-
-  async function submit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setPending(true);
-    setMessage('');
-    const supabase = getSupabaseClient();
-
-    if (mode === 'recovery') {
-      const result = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin,
-      });
-      setPending(false);
-      setMessage(result.error
-        ? result.error.message
-        : tr('Si existe una cuenta con ese correo, recibirás un enlace para crear una nueva contraseña.', 'If an account exists for that email, you will receive a link to create a new password.'));
-      return;
-    }
-
-    const result = mode === 'login'
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { display_name: displayName.trim() } },
-        });
-
-    setPending(false);
-    if (result.error) {
-      setMessage(result.error.message);
-      return;
-    }
-    if (mode === 'signup' && !result.data.session) {
-      setMessage(tr('Cuenta creada. Revisa tu correo para confirmarla antes de entrar.', 'Account created. Check your email to confirm it before signing in.'));
-    }
-  }
-
-  return (
-    <main className="auth-page">
-      <section className="auth-panel" aria-labelledby="auth-title">
-        <Brand />
-        <div className="auth-copy">
-          <p className="eyebrow">{tr('Tu entrenamiento, siempre contigo', 'Your training, always with you')}</p>
-          <h1 id="auth-title">{mode === 'login' ? tr('Entrar en Haltero', 'Sign in to Haltero') : mode === 'signup' ? tr('Crear una cuenta', 'Create an account') : tr('Recuperar contraseña', 'Reset password')}</h1>
-          <p>{mode === 'recovery' ? tr('Te enviaremos un enlace seguro para elegir una contraseña nueva.', 'We will send you a secure link to choose a new password.') : tr('Guarda tus rutinas, sesiones y progreso de forma segura.', 'Keep your routines, sessions and progress safe.')}</p>
-        </div>
-        <form className="auth-form" onSubmit={submit}>
-          {mode === 'signup' && (
-            <label>
-              <span>{tr('Nombre', 'Name')}</span>
-              <input required minLength={2} maxLength={60} autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
-            </label>
-          )}
-          <label>
-            <span>{tr('Correo electrónico', 'Email')}</span>
-            <input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-          </label>
-          {mode !== 'recovery' && <label>
-            <span>{tr('Contraseña', 'Password')}</span>
-            <input required type="password" minLength={8} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} />
-          </label>}
-          {message && <output className="auth-message">{message}</output>}
-          <Button size="lg" type="submit" disabled={pending}>
-            {pending ? tr('Procesando…', 'Processing…') : mode === 'login' ? tr('Entrar', 'Sign in') : mode === 'signup' ? tr('Crear cuenta', 'Create account') : tr('Enviar enlace', 'Send link')}
-          </Button>
-        </form>
-        <div className="auth-links">
-          <button className="auth-switch" type="button" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setMessage(''); }}>{mode === 'login' ? tr('¿Primera vez? Crear una cuenta', 'New here? Create an account') : tr('Volver a iniciar sesión', 'Back to sign in')}</button>
-          {mode === 'login' && <button className="auth-switch" type="button" onClick={() => { setMode('recovery'); setMessage(''); }}>{tr('He olvidado mi contraseña', 'I forgot my password')}</button>}
-        </div>
-      </section>
-      <aside className="auth-visual" aria-hidden="true">
-        <span>01</span>
-        <strong>{tr('ENTRENA', 'TRAIN')}<br />{tr('REGISTRA', 'TRACK')}<br />{tr('PROGRESA', 'PROGRESS')}</strong>
-      </aside>
-    </main>
-  );
-}
-
-function PasswordRecoveryScreen({ onComplete }: { onComplete: () => void }) {
-  const { tr } = useI18n();
-  const [password, setPassword] = useState('');
-  const [confirmation, setConfirmation] = useState('');
-  const [pending, setPending] = useState(false);
-  const [message, setMessage] = useState('');
-
-  async function updatePassword(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (password !== confirmation) {
-      setMessage(tr('Las contraseñas no coinciden.', 'Passwords do not match.'));
-      return;
-    }
-    setPending(true);
-    const { error } = await getSupabaseClient().auth.updateUser({ password });
-    setPending(false);
-    if (error) {
-      setMessage(error.message);
-      return;
-    }
-    window.history.replaceState({}, '', window.location.pathname);
-    onComplete();
-  }
-
-  return <main className="auth-page"><section className="auth-panel" aria-labelledby="recovery-title"><Brand /><div className="auth-copy"><p className="eyebrow">{tr('Cuenta segura', 'Secure account')}</p><h1 id="recovery-title">{tr('Crea una contraseña nueva', 'Create a new password')}</h1><p>{tr('Utiliza al menos ocho caracteres y no reutilices una contraseña de otro servicio.', 'Use at least eight characters and do not reuse a password from another service.')}</p></div><form className="auth-form" onSubmit={updatePassword}><label><span>{tr('Nueva contraseña', 'New password')}</span><input required type="password" minLength={8} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} /></label><label><span>{tr('Repetir contraseña', 'Confirm password')}</span><input required type="password" minLength={8} autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></label>{message && <output className="auth-message">{message}</output>}<Button size="lg" type="submit" disabled={pending || password.length < 8 || password !== confirmation}>{pending ? tr('Guardando…', 'Saving…') : tr('Guardar contraseña', 'Save password')}</Button></form></section></main>;
 }
 
 export default function Home() {
@@ -1511,9 +1578,13 @@ export default function Home() {
       ) : !isSupabaseConfigured ? (
         <main className="auth-page"><div className="auth-loading"><Brand /><p>{language === 'es' ? 'Falta configurar la conexión con Supabase.' : 'The Supabase connection is not configured.'}</p></div></main>
       ) : passwordRecovery && user ? (
-        <PasswordRecoveryScreen onComplete={() => setPasswordRecovery(false)} />
+        <Suspense fallback={<main className="auth-page"><div className="auth-loading"><Brand /></div></main>}>
+          <PasswordRecoveryScreen onComplete={() => setPasswordRecovery(false)} />
+        </Suspense>
       ) : !user ? (
-        <AuthScreen />
+        <Suspense fallback={<main className="auth-page"><div className="auth-loading"><Brand /></div></main>}>
+          <AuthScreen />
+        </Suspense>
       ) : (
         <>
           <GamificationCelebration userId={user.id} />

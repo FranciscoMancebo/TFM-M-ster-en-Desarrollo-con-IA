@@ -43,6 +43,10 @@ const profile: UserProfile = {
   showMedia: true,
   showSocialLinks: true,
   confirmDetectedRecords: true,
+      restTimerEnabled: true,
+      restTimerDefaultSeconds: 120,
+      restTimerSound: true,
+      restTimerVibration: true,
 };
 
 const techniqueExercises = [

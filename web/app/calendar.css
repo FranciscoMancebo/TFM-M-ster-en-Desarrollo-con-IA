@@ -69,6 +69,22 @@
 .calendar-form label > span { font: 750 10px/1 var(--font-geist-mono), monospace; text-transform: uppercase; }
 .calendar-form input, .calendar-form select, .calendar-form textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #cfd1c8; border-radius: 8px; background: #fff; color: var(--foreground); font: inherit; }
 .calendar-form textarea { resize: vertical; }
+.free-session-dialog { width: min(720px, calc(100vw - 2rem)) !important; max-height: min(820px, calc(100vh - 2rem)); overflow-y: auto; }
+.free-session-builder { display: grid; gap: 16px; min-height: 180px; }
+.free-session-add { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; align-items: end; }
+.free-session-add label,.free-session-exercise-list label { display: grid; gap: 6px; }
+.free-session-add label > span,.free-session-exercise-list label > span { font: 750 10px/1 var(--font-geist-mono),monospace; text-transform: uppercase; }
+.free-session-add select,.free-session-exercise-list input { width: 100%; min-height: 44px; padding: 9px 11px; border: 1px solid #cfd1c8; border-radius: 8px; background: #fff; color: var(--foreground); font: inherit; }
+.free-session-empty { min-height: 120px; display: grid; place-items: center; margin: 0; padding: 20px; border: 1px dashed #bbbdb4; border-radius: 10px; color: var(--muted-foreground); font-size: 13px; text-align: center; }
+.free-session-exercise-list { display: grid; gap: 10px; }
+.free-session-exercise-list article { padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: #f7f7f1; }
+.free-session-exercise-list article > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.free-session-exercise-list article > header strong { font-size: 14px; }
+.free-session-exercise-list article > header button { width: 38px; height: 38px; display: grid; place-items: center; border: 0; border-radius: 7px; background: transparent; color: #8b3d36; cursor: pointer; }
+.free-session-exercise-list article > header button:hover { background: #f3dfdc; }
+.free-session-exercise-list article > header button:focus-visible { outline: 3px solid rgba(139,61,54,.25); outline-offset: 2px; }
+.free-session-exercise-list article > header svg { width: 17px; }
+.free-session-exercise-list article > div { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
 
 @media (max-width: 900px) {
   .adherence-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -90,4 +106,6 @@
   .calendar-detail-card { grid-template-columns: auto minmax(0, 1fr); }
   .calendar-detail-state { grid-column: 2; }
   .calendar-detail-actions { grid-column: 1 / -1; }
+  .free-session-add { grid-template-columns: 1fr; }
+  .free-session-exercise-list article > div { grid-template-columns: 1fr; }
 }

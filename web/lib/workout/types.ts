@@ -19,10 +19,12 @@ export type Exercise = {
   name: string;
   prescription: string;
   context: string;
+  restSeconds: number | null;
   sets: TrainingSet[];
 };
 
 export type RoutinePlan = {
+  kind: 'routine' | 'free_session';
   assignmentId: string;
   routineVersionId: string;
   routineDayId: string;
@@ -43,6 +45,15 @@ export type ActiveWorkout = {
   exercises: Exercise[];
   elapsed: number;
   startedAt: string;
+  plan: RoutinePlan;
+};
+
+export type FreeSessionExerciseDraft = {
+  exerciseId: string;
+  exerciseName: string;
+  sets: number;
+  repetitions: number;
+  loadKg: number;
 };
 
 export type TrainingCategory = 'strength' | 'technique' | 'mobility';
@@ -217,6 +228,10 @@ export type UserProfile = {
   showMedia: boolean;
   showSocialLinks: boolean;
   confirmDetectedRecords: boolean;
+  restTimerEnabled: boolean;
+  restTimerDefaultSeconds: number;
+  restTimerSound: boolean;
+  restTimerVibration: boolean;
 };
 
 export type ProfileMediaType = 'image' | 'youtube';
