@@ -33,6 +33,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { LanguageToggle } from '@/components/language-toggle';
 import { NotificationCenter } from '@/components/notification-center';
 import { CompetitionEligibility } from '@/components/competition-eligibility';
@@ -418,29 +419,47 @@ function Brand() {
 function MainNavigation({
   activeView,
   onNavigate,
+  mobile = false,
 }: {
   activeView: AppView;
   onNavigate: (view: AppView) => void;
+  mobile?: boolean;
 }) {
   const { language, tr } = useI18n();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const primary = navItems.filter(({ id }) => id === 'today' || id === 'calendar' || id === 'routines' || id === 'history');
+  const secondary = navItems.filter((item) => !primary.includes(item));
+
+  function renderItem({ id, label, labelEn, icon: Icon }: typeof navItems[number]) {
+    const active = id === activeView;
+    return (
+      <button
+        className={active ? 'nav-item is-active' : 'nav-item'}
+        key={id}
+        type="button"
+        aria-current={active ? 'page' : undefined}
+        onClick={() => { setMoreOpen(false); onNavigate(id); }}
+      >
+        <Icon aria-hidden="true" size={20} strokeWidth={1.8} />
+        <span>{language === 'es' ? label : labelEn}</span>
+      </button>
+    );
+  }
+
   return (
     <nav className="main-nav" aria-label={tr('Navegación principal', 'Main navigation')}>
-      {navItems.map(({ id, label, labelEn, icon: Icon }) => {
-        const active = id === activeView;
-        return (
-          <button
-            className={active ? 'nav-item is-active' : 'nav-item'}
-            key={label}
-            type="button"
-            aria-current={active ? 'page' : undefined}
-            disabled={!id}
-            onClick={() => id && onNavigate(id)}
-          >
-            <Icon aria-hidden="true" size={20} strokeWidth={1.8} />
-            <span>{language === 'es' ? label : labelEn}</span>
-          </button>
-        );
-      })}
+      {(mobile ? primary : navItems).map(renderItem)}
+      {mobile && (
+        <Popover open={moreOpen} onOpenChange={setMoreOpen}>
+          <PopoverTrigger className={secondary.some(({ id }) => id === activeView) ? 'nav-item is-active' : 'nav-item'}>
+            <MoreHorizontal aria-hidden="true" size={20} />
+            <span>{tr('Más', 'More')}</span>
+          </PopoverTrigger>
+          <PopoverContent side="top" align="end" sideOffset={12} className="mobile-nav-more" aria-label={tr('Más secciones', 'More sections')}>
+            {secondary.map(renderItem)}
+          </PopoverContent>
+        </Popover>
+      )}
     </nav>
   );
 }
@@ -476,7 +495,7 @@ function AppFrame({
       {!sessionMode && <div className="app-notification"><NotificationCenter onOpenRoutines={() => onNavigate('routines')} /></div>}
       <main className="content-shell" id="main-content" tabIndex={-1}><Suspense fallback={<output className="view-loading">{language === 'es' ? 'Cargando sección…' : 'Loading section…'}</output>}>{children}</Suspense></main>
       {!sessionMode && (
-        <MainNavigation activeView={activeView} onNavigate={onNavigate} />
+        <MainNavigation activeView={activeView} onNavigate={onNavigate} mobile />
       )}
     </div>
   );
@@ -500,7 +519,11 @@ function PerformanceDropAlert({
   );
 }
 
-function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPreferredLanguageLoaded: (language: Language) => void }) {
+function TrainingApp({ user, onPreferredLanguageLoaded, onChangeLanguage }: {
+  user: User;
+  onPreferredLanguageLoaded: (language: Language) => void;
+  onChangeLanguage: (language: Language) => void;
+}) {
   const { language, locale, tr } = useI18n();
   const [view, setView] = useState<AppView>('today');
   const [screen, setScreen] = useState<Screen>('today');
@@ -1146,16 +1169,16 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
                   <tbody>{exercise.sets.map((set, setIndex) => (
                     <tr className={`set-row is-${set.status}`} key={set.id}>
                       <th scope="row">{setIndex + 1}</th>
-                      <td><label>
+                      <td data-field={tr('Carga', 'Load')}><label>
                         <span className="sr-only">Carga de la serie {setIndex + 1}</span>
                         <input inputMode="decimal" value={set.weight} onChange={(event) => updateSet(exercise.id, set.id, { weight: Number(event.target.value) })} aria-label={`Carga de la serie ${setIndex + 1} en kilogramos`} />
                         <small>kg</small>
                       </label></td>
-                      <td><label>
+                      <td data-field={tr('Reps', 'Reps')}><label>
                         <span className="sr-only">Repeticiones de la serie {setIndex + 1}</span>
                         <input inputMode="numeric" value={set.reps} onChange={(event) => updateSet(exercise.id, set.id, { reps: Number(event.target.value) })} aria-label={`Repeticiones de la serie ${setIndex + 1}`} />
                       </label></td>
-                      <td><label>
+                      <td data-field="RPE"><label>
                         <span className="sr-only">RPE de la serie {setIndex + 1}</span>
                         <input className="rpe-input" type="number" inputMode="decimal" min={1} max={10} step={0.5} value={set.rpe ?? ''} onChange={(event) => updateSet(exercise.id, set.id, { rpe: event.target.value ? Number(event.target.value) : null })} placeholder="—" aria-label={`RPE de la serie ${setIndex + 1}`} />
                       </label></td>
@@ -1340,6 +1363,10 @@ function TrainingApp({ user, onPreferredLanguageLoaded }: { user: User; onPrefer
                 {profile.profileVisibility === 'private' && <p><LockKeyhole aria-hidden="true" />{tr('Estos permisos quedan guardados, pero nadie verá el perfil hasta que lo marques como público.', 'These permissions are saved, but nobody can view the profile until you make it public.')}</p>}
               </section>
               <ProfileShowcaseEditor onError={setDataError} />
+              <section className="profile-wide profile-language" aria-labelledby="profile-language-title">
+                <strong id="profile-language-title">{tr('Idioma de la aplicación', 'App language')}</strong>
+                <LanguageToggle onChange={onChangeLanguage} />
+              </section>
               <section className="profile-wide account-data-settings" aria-labelledby="account-data-title">
                 <div><strong id="account-data-title">{tr('Tus datos y tu cuenta', 'Your data and account')}</strong><p>{tr('Descarga una copia legible de tus datos o elimina definitivamente la cuenta.', 'Download a readable copy of your data or permanently delete the account.')}</p></div>
                 <div><Button type="button" variant="outline" disabled={exportingData} onClick={() => void exportAccountData()}><Download aria-hidden="true" />{exportingData ? tr('Preparando…', 'Preparing…') : tr('Exportar datos', 'Export data')}</Button><Button type="button" variant="outline" className="danger-action" onClick={() => setDeleteAccountOpen(true)}><Trash2 aria-hidden="true" />{tr('Eliminar cuenta', 'Delete account')}</Button></div>
@@ -1572,7 +1599,6 @@ export default function Home() {
 
   return (
     <I18nProvider language={language}>
-      <LanguageToggle onChange={changeLanguage} />
       {loading ? (
         <main className="auth-page"><div className="auth-loading"><Brand /><p>{language === 'es' ? 'Abriendo tu espacio de entrenamiento…' : 'Opening your training space…'}</p></div></main>
       ) : !isSupabaseConfigured ? (
@@ -1583,12 +1609,12 @@ export default function Home() {
         </Suspense>
       ) : !user ? (
         <Suspense fallback={<main className="auth-page"><div className="auth-loading"><Brand /></div></main>}>
-          <AuthScreen />
+          <AuthScreen onChangeLanguage={changeLanguage} />
         </Suspense>
       ) : (
         <>
           <GamificationCelebration userId={user.id} />
-          <TrainingApp user={user} onPreferredLanguageLoaded={applyLanguage} />
+          <TrainingApp user={user} onPreferredLanguageLoaded={applyLanguage} onChangeLanguage={changeLanguage} />
         </>
       )}
     </I18nProvider>

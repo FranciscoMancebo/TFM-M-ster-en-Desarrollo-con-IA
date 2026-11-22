@@ -2,6 +2,8 @@
 
 import { type SubmitEvent, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { LanguageToggle } from '@/components/language-toggle';
+import type { Language } from '@/lib/workout/types';
 import { useI18n } from '@/lib/i18n';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
@@ -9,7 +11,7 @@ function AuthBrand() {
   return <div className="brand-lockup" aria-label="Haltero"><span className="brand-mark" aria-hidden="true">H</span><span>HALTERO</span></div>;
 }
 
-export function AuthScreen() {
+export function AuthScreen({ onChangeLanguage }: { onChangeLanguage: (language: Language) => void }) {
   const { tr } = useI18n();
   const [mode, setMode] = useState<'login' | 'signup' | 'recovery'>('login');
   const [displayName, setDisplayName] = useState('');
@@ -41,7 +43,7 @@ export function AuthScreen() {
 
   return <main className="auth-page">
     <section className="auth-panel" aria-labelledby="auth-title">
-      <AuthBrand />
+      <div className="auth-panel-top"><AuthBrand /><LanguageToggle onChange={onChangeLanguage} /></div>
       <div className="auth-copy"><p className="eyebrow">{tr('Tu entrenamiento, siempre contigo', 'Your training, always with you')}</p><h1 id="auth-title">{mode === 'login' ? tr('Entrar en Haltero', 'Sign in to Haltero') : mode === 'signup' ? tr('Crear una cuenta', 'Create an account') : tr('Recuperar contraseña', 'Reset password')}</h1><p>{mode === 'recovery' ? tr('Te enviaremos un enlace seguro para elegir una contraseña nueva.', 'We will send you a secure link to choose a new password.') : tr('Guarda tus rutinas, sesiones y progreso de forma segura.', 'Keep your routines, sessions and progress safe.')}</p></div>
       <form className="auth-form" onSubmit={submit}>
         {mode === 'signup' && <label><span>{tr('Nombre', 'Name')}</span><input required minLength={2} maxLength={60} autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} /></label>}

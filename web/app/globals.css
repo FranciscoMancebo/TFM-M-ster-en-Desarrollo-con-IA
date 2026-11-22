@@ -133,11 +133,9 @@ button,input{font:inherit} button{cursor:pointer} button:disabled{cursor:default
 @media(max-width:640px){.coach-heading{padding-top:36px;display:block}.coach-private-note{width:max-content;margin-top:18px}.coach-context{display:none}.coach-messages{padding:16px;min-height:360px}.coach-message{max-width:92%}.app-shell>.main-nav .nav-item{min-width:0;flex:1;padding-inline:2px;font-size:9px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}}
 .language-toggle {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 100;
-  display: flex;
+  display: inline-flex;
+  width: fit-content;
+  flex-shrink: 0;
   align-items: center;
   gap: 3px;
   padding: 5px;
@@ -145,8 +143,6 @@ button,input{font:inherit} button{cursor:pointer} button:disabled{cursor:default
   background: rgba(250, 249, 245, 0.94);
   border: 1px solid #d9d8cf;
   border-radius: 999px;
-  box-shadow: 0 6px 24px rgba(24, 30, 22, 0.08);
-  backdrop-filter: blur(10px);
 }
 
 .language-toggle svg {
@@ -173,10 +169,50 @@ button,input{font:inherit} button{cursor:pointer} button:disabled{cursor:default
   background: #172016;
 }
 
-@media (max-width: 760px) {
-  .language-toggle {
-    right: 14px;
-    bottom: 84px;
+.auth-panel-top, .profile-language {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mobile-nav-more .nav-item {
+  width: 100%;
+  min-height: 44px;
+  color: var(--foreground);
+}
+
+.mobile-nav-more .nav-item:hover, .mobile-nav-more .nav-item.is-active {
+  background: #e9eddc;
+  color: var(--foreground);
+}
+
+@media (max-width: 899px) {
+  .app-shell > .main-nav {
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  .app-shell > .main-nav .nav-item {
+    flex: 1;
+    min-width: 0;
+    padding-inline: 2px;
+    font-size: 11px;
+  }
+  .app-shell:not(.is-session) {
+    position: relative;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .top-bar > svg:last-child { visibility: hidden; }
+}
+
+@media (max-width: 560px) {
+  .lift-progress-heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .lift-progress-heading > p {
+    text-align: left;
   }
 }
 
@@ -378,8 +414,9 @@ button,input{font:inherit} button{cursor:pointer} button:disabled{cursor:default
 
 @media (max-width: 680px) {
   .routine-global-alert { margin: .75rem 1rem 0; }
-  .routine-hub-heading { align-items: stretch; }
-  .routine-heading-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .routine-hub-heading { flex-direction: column; align-items: stretch; gap: 16px; }
+  .routine-heading-actions { display: flex; flex-wrap: wrap; }
+  .routine-heading-actions > button { flex: 1 1 auto; max-width: 100%; white-space: normal; }
   .routine-hub-tabs { width: 100%; }
   .routine-hub-tabs button { flex: 1; justify-content: center; }
   .community-filters { grid-template-columns: 1fr; }
@@ -540,7 +577,7 @@ button,input{font:inherit} button{cursor:pointer} button:disabled{cursor:default
 }
 
 /* Notifications */
-.app-notification { position: fixed; z-index: 45; top: 19px; right: 72px; }
+.app-notification { position: absolute; z-index: 45; top: 23px; right: 72px; }
 .notification-trigger { position: relative; width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid #cfd1c7; border-radius: 50%; background: rgba(255,255,255,.92); color: var(--forest); box-shadow: 0 8px 24px rgba(20,24,18,.1); }
 .notification-trigger > svg { width: 18px; height: 18px; }
 .notification-trigger > span { position: absolute; top: -4px; right: -3px; min-width: 18px; height: 18px; padding: 0 4px; display: grid; place-items: center; border: 2px solid var(--paper); border-radius: 999px; background: var(--danger); color: #fff; font: 800 9px/1 var(--font-mono), monospace; }
@@ -666,7 +703,7 @@ button,input{font:inherit} button{cursor:pointer} button:disabled{cursor:default
 @media (min-width: 1180px) { .reward-grid { grid-template-columns: repeat(3,minmax(0,1fr)); } }
 
 @media (min-width: 900px) {
-  .app-notification { top: auto; right: auto; left: 166px; bottom: 89px; }
+  .app-notification { position: fixed; top: auto; right: auto; left: 166px; bottom: 89px; }
   .notification-trigger { border-color: #424940; background: #252b23; color: #fff; box-shadow: none; }
   .notification-trigger > span { border-color: var(--forest); }
 }
